@@ -1,0 +1,364 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile within the AgoraCare application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The avatar id of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user in the family.",
+          "enum": ["Caregiver", "Patient", "Child"]
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "avatar",
+        "role"
+      ]
+    },
+    "Medication": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Medication",
+      "type": "object",
+      "description": "Represents a medication prescribed to a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the medication."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the medication."
+        },
+        "dosage": {
+          "type": "string",
+          "description": "The dosage of the medication (e.g., 10mg)."
+        },
+        "schedule": {
+          "type": "string",
+          "description": "How often the medication should be taken (e.g., once daily)."
+        },
+        "nextDose": {
+          "type": "string",
+          "description": "Time of the next dose."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "dosage",
+        "schedule",
+        "nextDose"
+      ]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Represents a medical appointment.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the appointment."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the appointment"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date and time of the appointment.",
+          "format": "date-time"
+        },
+        "time": {
+          "type": "string",
+          "description": "The time of the appointment"
+        },
+        "doctor": {
+          "type": "string",
+          "description": "The name of the doctor for the appointment."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "date",
+        "time",
+        "doctor"
+      ]
+    },
+    "EmergencyContact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EmergencyContact",
+      "type": "object",
+      "description": "Represents an emergency contact for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the emergency contact."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the emergency contact."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The phone number of the emergency contact."
+        },
+        "relation": {
+          "type": "string",
+          "description": "The relationship of the contact to the user (e.g., son, daughter)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phoneNumber",
+        "relation"
+      ]
+    },
+    "Prescription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Prescription",
+      "type": "object",
+      "description": "Represents a prescription issued to a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the prescription."
+        },
+        "medicationName": {
+          "type": "string",
+          "description": "The name of the prescribed medication."
+        },
+        "dosage": {
+          "type": "string",
+          "description": "The prescribed dosage of the medication."
+        },
+        "frequency": {
+          "type": "string",
+          "description": "How often the medication should be taken."
+        },
+        "doctorName": {
+          "type": "string",
+          "description": "The name of the doctor who issued the prescription."
+        },
+        "issueDate": {
+          "type": "string",
+          "description": "The date the prescription was issued.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "medicationName",
+        "dosage",
+        "frequency",
+        "doctorName",
+        "issueDate"
+      ]
+    },
+    "VitalSign": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VitalSign",
+      "type": "object",
+      "description": "Represents a user's vital signs at a specific time.",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "The date of the vital sign reading."
+        },
+        "heartRate": {
+          "type": "number",
+          "description": "The user's heart rate in beats per minute."
+        },
+        "bloodPressure": {
+          "type": "object",
+          "properties": {
+            "systolic": {
+              "type": "number"
+            },
+            "diastolic": {
+              "type": "number"
+            }
+          },
+          "required": ["systolic", "diastolic"]
+        }
+      },
+      "required": ["date", "heartRate", "bloodPressure"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profiles. Path-based ownership ensures only the authenticated user can access their profile. Includes denormalized 'caregiverForIds' for easier access to caregiver information.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/caregivers/{caregiverId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores caregiver relationships for a user. This collection is used for direct access control for caregivers. The `caregiverId` field in the document stores the ID of the caregiver. This structure denormalizes the caregiver relationship for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user (care recipient)."
+            },
+            {
+              "name": "caregiverId",
+              "description": "The unique identifier of the caregiver."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/medications/{medicationId}",
+        "definition": {
+          "entityName": "Medication",
+          "schema": {
+            "$ref": "#/backend/entities/Medication"
+          },
+          "description": "Stores medication information for a specific user. Path-based ownership ensures only the user can access their medication details.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "medicationId",
+              "description": "The unique identifier of the medication."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointment details for a specific user. Path-based ownership ensures only the user can access their appointment information.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier of the appointment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/emergencyContacts/{contactId}",
+        "definition": {
+          "entityName": "EmergencyContact",
+          "schema": {
+            "$ref": "#/backend/entities/EmergencyContact"
+          },
+          "description": "Stores emergency contact information for a specific user. Path-based ownership ensures only the user can access their emergency contact details.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "contactId",
+              "description": "The unique identifier of the emergency contact."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/prescriptions/{prescriptionId}",
+        "definition": {
+          "entityName": "Prescription",
+          "schema": {
+            "$ref": "#/backend/entities/Prescription"
+          },
+          "description": "Stores prescription information for a specific user. Path-based ownership ensures only the user can access their prescription details.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "prescriptionId",
+              "description": "The unique identifier of the prescription."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/vitals/{vitalId}",
+        "definition": {
+          "entityName": "VitalSign",
+          "schema": {
+            "$ref": "#/backend/entities/VitalSign"
+          },
+          "description": "Stores vital sign readings for a specific user. Path-based ownership ensures the user or their caregiver can access this data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "vitalId",
+              "description": "The unique identifier of the vital sign reading."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support AgoraCare's core features while adhering to the principles of Authorization Independence, Structural Segregation, and Access Modeling. User profiles are stored under `/users/{userId}` to ensure path-based ownership and private data access. The caregiver relationships are managed through a separate collection `/users/{userId}/caregivers` to ensure authorization independence. This enables direct access control for caregivers. Medications, Appointments, Emergency Contacts, Prescriptions, and Vitals are modeled as subcollections of `/users/{userId}`, enabling straightforward path-based ownership. This structure allows for secure list operations (QAPs) since each subcollection is homogeneous in its security posture. The use of path-based ownership simplifies security rules, focusing on `request.auth.uid` without relying on complex `get()` calls. This achieves Authorization Independence, simplifies debugging, and maintains data integrity."
+  }
+}
