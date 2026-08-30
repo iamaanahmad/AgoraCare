@@ -153,34 +153,34 @@ export default function MedicationsPage() {
 
   return (
     <AppLayout>
-      <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+      <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 w-full max-w-full min-w-0 overflow-x-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Medications</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Medications</h1>
+            <p className="text-muted-foreground text-sm">
               Manage medications for {selectedMember.firstName}
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)}>
+          <Button onClick={() => setShowForm(true)} className="self-start sm:self-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Medication
           </Button>
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="schedule" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="schedule">
-              <Calendar className="mr-2 h-4 w-4" />
-              Today's Schedule
+        <Tabs defaultValue="schedule" className="space-y-6 w-full min-w-0">
+          <TabsList className="grid grid-cols-3 w-full sm:w-auto h-auto p-1">
+            <TabsTrigger value="schedule" className="text-xs sm:text-sm py-2">
+              <Calendar className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Schedule
             </TabsTrigger>
-            <TabsTrigger value="list">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              All Medications
+            <TabsTrigger value="list" className="text-xs sm:text-sm py-2">
+              <PlusCircle className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              All Meds
             </TabsTrigger>
-            <TabsTrigger value="stats">
-              <BarChart3 className="mr-2 h-4 w-4" />
+            <TabsTrigger value="stats" className="text-xs sm:text-sm py-2">
+              <BarChart3 className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Statistics
             </TabsTrigger>
           </TabsList>

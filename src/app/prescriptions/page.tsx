@@ -222,11 +222,11 @@ export default function PrescriptionsPage() {
 
   return (
     <AppLayout>
-      <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+      <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 w-full max-w-full min-w-0 overflow-x-hidden">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Prescriptions</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Prescriptions</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Upload and manage prescriptions with AI-powered explanations
           </p>
         </div>

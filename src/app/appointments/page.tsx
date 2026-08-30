@@ -19,6 +19,7 @@ import { AppointmentList } from '@/components/appointments/appointment-list';
 import { AppointmentCalendar } from '@/components/appointments/appointment-calendar';
 import { UnifiedCalendarView } from '@/components/calendar/unified-calendar-view';
 import { Plus, Calendar, List, Loader2, CalendarRange } from 'lucide-react';
+import { AppLayout } from '@/components/layout/app-layout';
 import { Appointment } from '@/firebase/firestore/appointments';
 import { CalendarEvent } from '@/lib/calendar/types';
 
@@ -65,58 +66,57 @@ export default function AppointmentsPage() {
 
   if (!user || !activeProfile) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">Please log in to view appointments</p>
-          </CardContent>
-        </Card>
-      </div>
+      <AppLayout>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <p className="text-muted-foreground">Please select a profile to view appointments.</p>
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Appointments</h1>
-          <p className="text-muted-foreground">
-            Manage appointments for {activeProfile.firstName} {activeProfile.lastName}
-          </p>
+    <AppLayout>
+      <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 w-full max-w-full min-w-0 overflow-x-hidden">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Appointments</h1>
+            <p className="text-muted-foreground text-sm">
+              Manage appointments for {activeProfile.firstName} {activeProfile.lastName}
+            </p>
+          </div>
+          <Button onClick={() => setShowBookingDialog(true)} className="self-start sm:self-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Book Appointment
+          </Button>
         </div>
-        <Button onClick={() => setShowBookingDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Book Appointment
-        </Button>
-      </div>
 
-      {loading ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </CardContent>
-        </Card>
-      ) : (
-        <Tabs defaultValue="upcoming" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="upcoming" className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Upcoming ({upcomingAppointments.length})
-            </TabsTrigger>
-            <TabsTrigger value="past" className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Past ({pastAppointments.length})
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Calendar
-            </TabsTrigger>
-            <TabsTrigger value="unified" className="flex items-center gap-2">
-              <CalendarRange className="h-4 w-4" />
-              Unified View
-            </TabsTrigger>
-          </TabsList>
+        {loading ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ) : (
+          <Tabs defaultValue="upcoming" className="space-y-6 w-full min-w-0">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto h-auto p-1">
+              <TabsTrigger value="upcoming" className="text-xs sm:text-sm py-2">
+                <List className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Upcoming ({upcomingAppointments.length})
+              </TabsTrigger>
+              <TabsTrigger value="past" className="text-xs sm:text-sm py-2">
+                <List className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Past ({pastAppointments.length})
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="text-xs sm:text-sm py-2">
+                <Calendar className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Calendar
+              </TabsTrigger>
+              <TabsTrigger value="unified" className="text-xs sm:text-sm py-2">
+                <CalendarRange className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Unified View
+              </TabsTrigger>
+            </TabsList>
 
           <TabsContent value="upcoming">
             <AppointmentList
@@ -288,5 +288,6 @@ export default function AppointmentsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  </AppLayout>
   );
 }

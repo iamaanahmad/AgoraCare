@@ -202,16 +202,16 @@ export default function ProfileManagementPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-6xl space-y-6 py-8">
+    <div className="container mx-auto max-w-6xl space-y-6 py-6 px-4 sm:px-6 w-full min-w-0 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Profile Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Profile Management</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Manage family member profiles, preferences, and emergency contacts
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.push('/dashboard')}>
+        <Button variant="outline" onClick={() => router.push('/')} className="self-start sm:self-auto">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Button>

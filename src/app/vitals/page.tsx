@@ -50,96 +50,103 @@ export default function VitalsPage() {
 
   return (
     <AppLayout>
-      <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Heart Rate</CardTitle>
-                    <Heart className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{latestVital?.heartRate || 'N/A'} bpm</div>
-                    <p className="text-xs text-muted-foreground">
-                        Latest recorded
-                    </p>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Blood Pressure</CardTitle>
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{latestVital ? `${latestVital.bloodPressure.systolic}/${latestVital.bloodPressure.diastolic}`: 'N/A'}</div>
-                     <p className="text-xs text-muted-foreground">
-                        Systolic / Diastolic (mmHg)
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
-        { isLoading ? <p>Loading vitals...</p> : memberVitals && memberVitals.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Heart Rate Over Time</CardTitle>
-              <CardDescription>Last 30 days</CardDescription>
+      <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 w-full max-w-full min-w-0 overflow-x-hidden">
+        {/* Metric Summary Cards */}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full min-w-0">
+          <Card className="min-w-0 overflow-hidden shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Heart Rate</CardTitle>
+              <Heart className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <ChartContainer config={vitalsChartConfig} className="min-h-[300px] w-full">
-                <LineChart data={memberVitals}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis label={{ value: 'bpm', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip content={<ChartTooltipContent />} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="heartRate"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    name="Heart Rate"
-                    dot={false}
-                  />
-                </LineChart>
-              </ChartContainer>
+              <div className="text-2xl font-bold">{latestVital?.heartRate || 'N/A'} bpm</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Latest recorded
+              </p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Blood Pressure Over Time</CardTitle>
-              <CardDescription>Last 30 days</CardDescription>
+          
+          <Card className="min-w-0 overflow-hidden shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Blood Pressure</CardTitle>
+              <Activity className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <ChartContainer config={vitalsChartConfig} className="min-h-[300px] w-full">
-                <AreaChart data={memberVitals}>
-                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis label={{ value: 'mmHg', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip content={<ChartTooltipContent />} />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="bloodPressure.systolic"
-                    stackId="1"
-                    stroke="hsl(var(--chart-2))"
-                    fill="hsl(var(--chart-2), 0.4)"
-                    name="Systolic"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="bloodPressure.diastolic"
-                    stackId="1"
-                    stroke="hsl(var(--chart-5))"
-                    fill="hsl(var(--chart-5), 0.4)"
-                    name="Diastolic"
-                  />
-                </AreaChart>
-              </ChartContainer>
+              <div className="text-2xl font-bold">{latestVital ? `${latestVital.bloodPressure.systolic}/${latestVital.bloodPressure.diastolic}`: 'N/A'}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Systolic / Diastolic (mmHg)
+              </p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Charts Grid */}
+        { isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading vitals data...</p>
+        ) : memberVitals && memberVitals.length > 0 ? (
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 w-full min-w-0">
+            <Card className="min-w-0 overflow-hidden shadow-sm w-full max-w-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Heart Rate Over Time</CardTitle>
+                <CardDescription>Historical heart rate measurements (bpm)</CardDescription>
+              </CardHeader>
+              <CardContent className="p-2 sm:p-6 w-full min-w-0 overflow-hidden">
+                <ChartContainer config={vitalsChartConfig} className="min-h-[260px] sm:min-h-[300px] w-full max-w-full">
+                  <LineChart data={memberVitals} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11 }} tickLine={false} domain={['auto', 'auto']} />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="heartRate"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2.5}
+                      name="Heart Rate"
+                      dot={{ r: 3 }}
+                    />
+                  </LineChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="min-w-0 overflow-hidden shadow-sm w-full max-w-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Blood Pressure Over Time</CardTitle>
+                <CardDescription>Systolic & Diastolic readings (mmHg)</CardDescription>
+              </CardHeader>
+              <CardContent className="p-2 sm:p-6 w-full min-w-0 overflow-hidden">
+                <ChartContainer config={vitalsChartConfig} className="min-h-[260px] sm:min-h-[300px] w-full max-w-full">
+                  <AreaChart data={memberVitals} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11 }} tickLine={false} domain={['auto', 'auto']} />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="bloodPressure.systolic"
+                      stroke="hsl(var(--chart-2))"
+                      fill="hsl(var(--chart-2))"
+                      fillOpacity={0.25}
+                      name="Systolic"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="bloodPressure.diastolic"
+                      stroke="hsl(var(--chart-5))"
+                      fill="hsl(var(--chart-5))"
+                      fillOpacity={0.25}
+                      name="Diastolic"
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
-            <p>No vital signs recorded for {selectedMember.firstName}.</p>
+          <p className="text-sm text-muted-foreground">No vital signs recorded for {selectedMember.firstName}.</p>
         )}
       </div>
     </AppLayout>

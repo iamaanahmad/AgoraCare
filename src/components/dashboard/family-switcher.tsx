@@ -28,13 +28,13 @@ export function FamilySwitcher() {
   }
 
   return (
-    <Card className="glass-card border-none overflow-hidden">
+    <Card className="glass-card border-none overflow-hidden w-full max-w-full min-w-0">
       <CardHeader className="pb-4">
         <CardTitle>Family Circle</CardTitle>
         <CardDescription>Manage care for your loved ones.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-center space-x-4">
+      <CardContent className="w-full overflow-hidden">
+        <div className="flex items-center space-x-4 overflow-x-auto pb-2 scrollbar-none w-full min-w-0">
           {members.map((member) => {
             const avatar = PlaceHolderImages.find((img) => img.id === member.avatar);
             return (
