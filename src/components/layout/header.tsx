@@ -103,63 +103,67 @@ export function Header() {
         </SheetContent>
       </Sheet>
       
-      <div className="relative ml-auto flex-1 md:grow-0">
-        <h1 className="font-headline text-xl font-semibold">
+      {/* Left-aligned Title */}
+      <div className="flex-1">
+        <h1 className="font-headline text-2xl font-bold tracking-tight text-foreground">
           {selectedMember ? `${selectedMember.firstName}'s Dashboard` : 'Dashboard'}
         </h1>
       </div>
 
-      <NotificationBell />
+      {/* Right-aligned Actions */}
+      <div className="ml-auto flex items-center gap-3">
+        <NotificationBell />
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="destructive" size="icon" className="ml-auto h-8 w-8">
-            <AlertCircle className="h-4 w-4" />
-            <span className="sr-only">Emergency Actions</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Emergency</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <Phone className="mr-2 h-4 w-4" />
-            <span>Call Doctor</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <MessageSquareWarning className="mr-2 h-4 w-4" />
-            <span>Notify Sara (Son)</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="destructive" size="icon" className="h-9 w-9 rounded-full shadow-sm hover:scale-105 transition-transform" title="Emergency Actions">
+              <AlertCircle className="h-4 w-4" />
+              <span className="sr-only">Emergency Actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-destructive font-semibold">Emergency Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer">
+              <Phone className="mr-2 h-4 w-4 text-destructive" />
+              <span>Call Doctor</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <MessageSquareWarning className="mr-2 h-4 w-4 text-amber-500" />
+              <span>Notify Sara (Caregiver)</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="overflow-hidden rounded-full"
-          >
-            <Avatar className="h-9 w-9">
-              {caregiverAvatar && (
-                <AvatarImage
-                  src={caregiverAvatar.imageUrl}
-                  alt="Caregiver Avatar"
-                  data-ai-hint={caregiverAvatar.imageHint}
-                />
-              )}
-              <AvatarFallback>SA</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="overflow-hidden rounded-full h-9 w-9 border-2 border-primary/20 hover:border-primary transition-colors"
+            >
+              <Avatar className="h-9 w-9">
+                {caregiverAvatar && (
+                  <AvatarImage
+                    src={caregiverAvatar.imageUrl}
+                    alt="Caregiver Avatar"
+                    data-ai-hint={caregiverAvatar.imageHint}
+                  />
+                )}
+                <AvatarFallback>SA</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer">Settings</DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">Support</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer text-destructive">Logout</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   );
 }

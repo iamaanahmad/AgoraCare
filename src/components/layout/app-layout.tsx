@@ -111,9 +111,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <VoiceProvider>
         <div className="flex min-h-screen w-full flex-col bg-background">
           <AppSidebar />
-          <div className="flex flex-col sm:gap-6 sm:py-6 sm:pl-20 sm:pr-6 max-w-7xl mx-auto w-full">
+          <div className="flex flex-col sm:gap-6 sm:py-6 sm:pl-20 sm:pr-8 w-full min-h-screen">
             <Header />
-            <main className="flex-1 px-4 sm:px-0">
+            <main className="flex-1 px-4 sm:px-6 w-full">
               {children}
             </main>
           </div>

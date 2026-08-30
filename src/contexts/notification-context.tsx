@@ -91,26 +91,33 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Check permission status
   useEffect(() => {
-    if (isNotificationSupported()) {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermissionStatus(Notification.permission);
     }
   }, []);
 
   // Request notification permission
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (!messaging || !user) return false;
+    if (typeof window === 'undefined' || !('Notification' in window)) return false;
 
     try {
-      const token = await requestNotificationPermission(messaging);
-      
-      if (token) {
-        // Save token to Firestore
-        await saveFCMToken(user.uid, token, firestore);
-        setPermissionStatus('granted');
+      const permission = await Notification.requestPermission();
+      setPermissionStatus(permission);
+
+      if (permission === 'granted') {
+        if (messaging && user && firestore) {
+          try {
+            const token = await requestNotificationPermission(messaging);
+            if (token) {
+              await saveFCMToken(user.uid, token, firestore);
+            }
+          } catch (err) {
+            console.warn('FCM token registration error:', err);
+          }
+        }
         return true;
       }
       
-      setPermissionStatus('denied');
       return false;
     } catch (error) {
       console.error('Error requesting permission:', error);

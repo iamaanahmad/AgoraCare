@@ -16,6 +16,11 @@ export function NotificationBell() {
   const { unreadCount, permissionStatus, requestPermission } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Re-check browser notification permission
+  const currentPermission = typeof window !== 'undefined' && 'Notification' in window 
+    ? Notification.permission 
+    : permissionStatus;
+
   const handleRequestPermission = async () => {
     await requestPermission();
   };
@@ -48,7 +53,7 @@ export function NotificationBell() {
             )}
           </div>
 
-          {permissionStatus !== 'granted' && (
+          {currentPermission !== 'granted' && (
             <div className="p-4 bg-muted/50 border-b">
               <p className="text-sm text-muted-foreground mb-2">
                 Enable notifications to receive medication reminders
