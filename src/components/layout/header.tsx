@@ -31,6 +31,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { useVoice } from '@/contexts/voice-context';
 import { createSupportTicket } from '@/firebase/firestore/tickets';
+import { NotificationBell } from '@/components/notifications';
+import { AgoraCareLogo } from '@/components/ui/logo';
 
 export function Header() {
   const { selectedMember } = useFamily();
@@ -89,27 +91,10 @@ export function Header() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="sm:max-w-xs">
+          <div className="mb-6 mt-2 px-2">
+            <AgoraCareLogo size={36} showText />
+          </div>
           <nav className="grid gap-6 text-lg font-medium">
-            <Link
-              href="#"
-              className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5"
-              >
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-              <span className="sr-only">AgoraCare</span>
-            </Link>
             <Link
               href="/"
               className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
@@ -149,11 +134,15 @@ export function Header() {
         </SheetContent>
       </Sheet>
       
-      {/* Left-aligned Title */}
-      <div className="flex-1">
-        <h1 className="font-headline text-2xl font-bold tracking-tight text-foreground">
-          {selectedMember ? `${selectedMember.firstName}'s Dashboard` : 'Dashboard'}
-        </h1>
+      {/* Left-aligned Title with Brand Logo */}
+      <div className="flex-1 flex items-center gap-3">
+        <AgoraCareLogo size={34} />
+        <div>
+          <h1 className="font-headline text-2xl font-bold tracking-tight text-foreground leading-none">
+            {selectedMember ? `${selectedMember.firstName}'s Dashboard` : 'Dashboard'}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">AgoraCare Voice-First Health Companion</p>
+        </div>
       </div>
 
       {/* Right-aligned Actions */}

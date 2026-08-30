@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { navItems } from '@/lib/data';
+import { AgoraCareLogo } from '@/components/ui/logo';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -12,24 +13,10 @@ export function AppSidebar() {
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-14 group/sidebar flex-col glass border-none shadow-sm transition-all duration-300 ease-in-out hover:w-64 hover:shadow-2xl sm:flex overflow-hidden bg-background/60 hover:bg-background/95 backdrop-blur-xl">
       <nav className="flex flex-col gap-4 px-2 sm:py-5 w-full">
         <Link
-          href="#"
-          className="group/logo mb-2 ml-1 flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground shadow-md transition-transform hover:scale-105 md:h-8 md:w-8 md:text-base relative"
+          href="/"
+          className="mb-2 ml-0.5 flex items-center transition-transform hover:scale-105"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4 transition-all group-hover/logo:scale-110"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
-          <span className="sr-only">AgoraCare</span>
+          <AgoraCareLogo size={32} showText={false} />
         </Link>
 
         {navItems.map((item) => {
