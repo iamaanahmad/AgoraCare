@@ -31,11 +31,21 @@ export function LiveAgentDashboard() {
     try {
       await updateTicketStatus(firestore, ticketId, 'in_progress', 'agent_1'); // In a real app, 'agent_1' would be the logged-in user's ID
       
+      const agentUid = 1000;
+      const response = await fetch('/api/agora/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelName: ticketId, uid: agentUid }),
+      });
+      
+      const { token } = await response.json();
+      
       const agoraService = getAgoraService();
       await agoraService.connect({
         appId: process.env.NEXT_PUBLIC_AGORA_APP_ID || '',
         channel: ticketId,
-        uid: 1000, // Agent UID
+        uid: agentUid,
+        token: token || undefined,
       });
       
       setActiveCallId(ticketId);

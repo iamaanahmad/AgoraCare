@@ -43,11 +43,12 @@ function getVisionClient(): ImageAnnotatorClient {
   }
 
   // Initialize client with credentials
-  // In production, use service account key file or Application Default Credentials
   const client = new ImageAnnotatorClient({
     projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-    // If using service account key file:
-    // keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    credentials: {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    },
   });
 
   return client;

@@ -36,23 +36,10 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Return combined results
     return NextResponse.json({
-      success: true,
-      data: {
-        ocrText: ocrResult.text,
-        ocrConfidence: ocrResult.confidence,
-        ocrValidation: validation,
-        summary: {
-          plainLanguage: summary.plainLanguageSummary,
-          medications: summary.medications,
-          warnings: summary.warnings,
-          interactions: summary.interactions,
-          specialInstructions: summary.specialInstructions,
-          doctorName: summary.doctorName,
-          prescriptionDate: summary.prescriptionDate,
-          confidence: summary.confidence,
-          missingInformation: summary.missingInformation,
-        },
-      },
+      ocrText: ocrResult.text,
+      ocrConfidence: ocrResult.confidence,
+      ocrValidation: validation,
+      summary: summary,
     });
   } catch (error) {
     console.error('Prescription processing error:', error);

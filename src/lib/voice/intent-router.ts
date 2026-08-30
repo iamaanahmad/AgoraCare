@@ -214,11 +214,20 @@ export function createDefaultIntentRouter(): IntentRouter {
              createdAt: new Date(),
           });
           
+          const agentUid = Math.floor(Math.random() * 100000);
+          const response = await fetch('/api/agora/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ channelName: ticketId, uid: agentUid }),
+          });
+          const { token } = await response.json();
+          
           const agoraService = getAgoraService();
           await agoraService.connect({
               appId: process.env.NEXT_PUBLIC_AGORA_APP_ID || '',
               channel: ticketId,
-              uid: Math.floor(Math.random() * 100000)
+              uid: agentUid,
+              token: token || undefined,
           });
  
           return {

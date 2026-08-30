@@ -43,27 +43,28 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // TODO: Implement actual token generation using agora-access-token library
-    // For now, return a placeholder response
-    // In production, use:
-    // import { RtcTokenBuilder, RtcRole } from 'agora-access-token';
-    // const currentTimestamp = Math.floor(Date.now() / 1000);
-    // const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
-    // const token = RtcTokenBuilder.buildTokenWithUid(
-    //   appId,
-    //   appCertificate,
-    //   channelName,
-    //   uid,
-    //   role === 'publisher' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER,
-    //   privilegeExpiredTs
-    // );
+    const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+    
+    // Convert uid to integer as expected by RtcTokenBuilder
+    const numericUid = uid ? parseInt(uid, 10) : 0;
+    
+    const token = RtcTokenBuilder.buildTokenWithUid(
+      appId,
+      appCertificate,
+      channelName,
+      numericUid,
+      role === 'publisher' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER,
+      privilegeExpiredTs
+    );
 
     return NextResponse.json({
-      token: '', // Placeholder - implement actual token generation
+      token: token,
       appId,
       channel: channelName,
-      uid: uid || 0,
-      expiresAt: Math.floor(Date.now() / 1000) + expirationTimeInSeconds,
+      uid: numericUid,
+      expiresAt: privilegeExpiredTs,
     });
   } catch (error) {
     console.error('Error generating Agora token:', error);

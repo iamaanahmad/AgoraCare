@@ -95,7 +95,7 @@ export function subscribeToActiveTickets(
     (snapshot) => {
       const tickets: SupportTicket[] = [];
       snapshot.forEach((doc) => {
-        tickets.push(doc.data() as SupportTicket);
+        tickets.push({ id: doc.id, ...doc.data() } as SupportTicket);
       });
       onUpdate(tickets);
     },

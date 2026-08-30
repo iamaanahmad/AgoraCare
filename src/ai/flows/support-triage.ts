@@ -4,17 +4,17 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const SupportTriageInputSchema = z.object({
-  transcript: z.string().describe('The ongoing conversation transcript or user message'),
-  language: z.string().optional().describe('The primary language detected (e.g. Hindi, English)'),
+  transcript: z.string().describe("The ongoing conversation transcript or user message"),
+  language: z.string().optional().describe("The primary language detected (e.g. Hindi, English)"),
 });
 export type SupportTriageInput = z.infer<typeof SupportTriageInputSchema>;
 
 const SupportTriageOutputSchema = z.object({
-  understanding: z.string().describe('The AI\\'s understanding of the user\\'s situation'),
-  escalateToHuman: z.boolean().describe('True if the call must be escalated to a human agent'),
-  escalationReason: z.string().optional().describe('Reason for escalation (if any)'),
-  suggestedResponse: z.string().describe('The response the AI should speak to the user'),
-  detectedLanguage: z.string().describe('The language the user is speaking in (Hindi or English)'),
+  understanding: z.string().describe("The AI's understanding of the user's situation"),
+  escalateToHuman: z.boolean().describe("True if the call must be escalated to a human agent"),
+  escalationReason: z.string().optional().describe("Reason for escalation (if any)"),
+  suggestedResponse: z.string().describe("The response the AI should speak to the user"),
+  detectedLanguage: z.string().describe("The language the user is speaking in (Hindi or English)"),
 });
 export type SupportTriageOutput = z.infer<typeof SupportTriageOutputSchema>;
 

@@ -92,9 +92,9 @@ IMPORTANT GUIDELINES:
 - For elderly patients, emphasize safety and clarity
 - If OCR text is unclear or incomplete, note this in confidence and missing information
 - Check for common drug interactions if existing medications are provided
-- Convert medical abbreviations to plain language (e.g., "PO" → "by mouth", "QD" → "once daily")
+- Convert medical abbreviations to plain language (e.g., "PO" -> "by mouth", "QD" -> "once daily")
 
-Return a JSON object with your analysis.
+Return ONLY a valid JSON object matching the schema. DO NOT wrap the output in markdown code blocks and DO NOT include any other text.
 `,
 });
 
@@ -105,7 +105,11 @@ const prescriptionSummarizerFlow = ai.defineFlow(
     outputSchema: PrescriptionSummarizerOutputSchema,
   },
   async (input) => {
-    const { output } = await prescriptionSummarizerPrompt(input);
-    return output!;
+    const { text, output } = await prescriptionSummarizerPrompt(input);
+    if (!output) {
+      console.error('Failed to parse AI output. Raw text:', text);
+      throw new Error('AI failed to generate a valid prescription summary');
+    }
+    return output;
   }
 );

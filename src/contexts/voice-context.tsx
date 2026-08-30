@@ -62,10 +62,21 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
 
       setVoiceState(prev => ({ ...prev, error: null }));
 
+      const finalUid = uid || Math.floor(Math.random() * 100000);
+      
+      const response = await fetch('/api/agora/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelName: channel, uid: finalUid }),
+      });
+      
+      const { token } = await response.json();
+
       const config: VoiceConfig = {
         appId,
         channel,
-        uid: uid || Math.floor(Math.random() * 100000),
+        uid: finalUid,
+        token: token || undefined,
         mode: 'rtc',
         codec: 'vp8',
       };

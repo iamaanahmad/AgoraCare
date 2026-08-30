@@ -11,6 +11,7 @@ import {
   Phone,
   MessageSquareWarning,
   HeartPulse,
+  AlertCircle,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -113,7 +114,7 @@ export function Header() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="destructive" size="icon" className="ml-auto h-8 w-8">
-            <Bell className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4" />
             <span className="sr-only">Emergency Actions</span>
           </Button>
         </DropdownMenuTrigger>
