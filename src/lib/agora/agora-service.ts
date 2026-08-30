@@ -25,6 +25,7 @@ export class AgoraService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 3;
   private reconnectDelay = 2000;
+  private isManualDisconnect = false;
 
   // Event callbacks
   private onConnectionStateChange?: (state: ConnectionState) => void;
@@ -50,6 +51,12 @@ export class AgoraService {
         throw new Error('Agora App ID is required');
       }
 
+      if (this.client && (this.client.connectionState === 'CONNECTED' || this.client.connectionState === 'CONNECTING')) {
+        console.log('Agora client already connected or connecting, skipping duplicate join.');
+        return;
+      }
+
+      this.isManualDisconnect = false;
       this.config = config;
       this.setConnectionState('connecting');
 
@@ -90,6 +97,9 @@ export class AgoraService {
    */
   async disconnect(): Promise<void> {
     try {
+      this.isManualDisconnect = true;
+      this.reconnectAttempts = 0;
+
       // Stop and close local audio track
       if (this.localAudioTrack) {
         this.localAudioTrack.stop();
@@ -170,7 +180,9 @@ export class AgoraService {
           break;
         case 'DISCONNECTED':
           this.setConnectionState('disconnected');
-          this.attemptReconnect();
+          if (!this.isManualDisconnect) {
+            this.attemptReconnect();
+          }
           break;
         case 'DISCONNECTING':
           this.setConnectionState('disconnected');

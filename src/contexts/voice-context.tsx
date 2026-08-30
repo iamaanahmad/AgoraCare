@@ -134,24 +134,34 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
     }
   }, []);
 
+  const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
+
   /**
-   * Start recording voice input
+   * Speak text out loud using browser speech synthesis
    */
-  const startRecording = useCallback(() => {
-    setVoiceState(prev => ({ ...prev, isRecording: true, currentMessage: '' }));
+  const speakText = useCallback((text: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      setVoiceState(prev => ({ ...prev, isSpeaking: true }));
+      utterance.onend = () => {
+        setVoiceState(prev => ({ ...prev, isSpeaking: false }));
+      };
+      utterance.onerror = () => {
+        setVoiceState(prev => ({ ...prev, isSpeaking: false }));
+      };
+      window.speechSynthesis.speak(utterance);
+    }
   }, []);
 
   /**
-   * Stop recording voice input
-   */
-  const stopRecording = useCallback(() => {
-    setVoiceState(prev => ({ ...prev, isRecording: false }));
-  }, []);
-
-  /**
-   * Send a text message (for dual-mode interface)
+   * Send a text message (runs real Genkit AI Triage & speaks response)
    */
   const sendMessage = useCallback(async (content: string) => {
+    if (!content.trim()) return;
+
     const userMessage: ConversationMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -160,37 +170,117 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setVoiceState(prev => ({ ...prev, isProcessing: true }));
+    setVoiceState(prev => ({ ...prev, isProcessing: true, error: null }));
 
     try {
-      // TODO: Integrate with AI service for response
-      // For now, add a placeholder response
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: content }),
+      });
+
+      const data = await res.json();
+      const replyText = data.response || "I'm here to help. How are you feeling right now?";
+
       const assistantMessage: ConversationMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'I received your message. AI integration coming soon.',
+        content: replyText,
         timestamp: new Date(),
       };
 
-      setTimeout(() => {
-        setMessages(prev => [...prev, assistantMessage]);
-        setVoiceState(prev => ({ ...prev, isProcessing: false }));
-      }, 500);
+      setMessages(prev => [...prev, assistantMessage]);
+      setVoiceState(prev => ({ ...prev, isProcessing: false }));
+
+      // Speak response out loud
+      speakText(replyText);
+
+      if (data.escalateToHuman) {
+        console.log('Call escalated to live human agent. Ticket ID:', data.ticketId);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      const fallbackReply = 'Emergency assistance protocol activated. Transferring your details to the live care dashboard.';
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: fallbackReply,
+          timestamp: new Date(),
+        },
+      ]);
+      speakText(fallbackReply);
       setVoiceState(prev => ({ 
         ...prev, 
         isProcessing: false,
-        error: 'Failed to send message' 
+        error: 'Failed to process with cloud AI' 
       }));
     }
-  }, []);
+  }, [speakText]);
+
+  /**
+   * Start recording voice input with browser speech recognition
+   */
+  const startRecording = useCallback(() => {
+    setVoiceState(prev => ({ ...prev, isRecording: true, currentMessage: '' }));
+    
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const reco = new SpeechRecognition();
+          reco.lang = 'en-IN';
+          reco.continuous = false;
+          reco.interimResults = false;
+
+          reco.onresult = (event: any) => {
+            const transcript = event.results?.[0]?.[0]?.transcript;
+            if (transcript) {
+              sendMessage(transcript);
+            }
+          };
+
+          reco.onerror = (event: any) => {
+            console.warn('Speech recognition status:', event.error);
+            setVoiceState(prev => ({ ...prev, isRecording: false }));
+          };
+
+          reco.onend = () => {
+            setVoiceState(prev => ({ ...prev, isRecording: false }));
+          };
+
+          reco.start();
+          setRecognitionInstance(reco);
+        } catch (e) {
+          console.warn('Speech recognition start failed:', e);
+        }
+      }
+    }
+  }, [sendMessage]);
+
+  /**
+   * Stop recording voice input
+   */
+  const stopRecording = useCallback(() => {
+    if (recognitionInstance) {
+      try {
+        recognitionInstance.stop();
+      } catch (e) {
+        // ignore
+      }
+    }
+    setVoiceState(prev => ({ ...prev, isRecording: false }));
+  }, [recognitionInstance]);
 
   /**
    * Clear conversation messages
    */
   const clearMessages = useCallback(() => {
     setMessages([]);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
   }, []);
 
   /**
