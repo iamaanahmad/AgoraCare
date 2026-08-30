@@ -137,14 +137,41 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
   const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
 
   /**
-   * Speak text out loud using browser speech synthesis
+   * Speak text out loud using browser speech synthesis with Indian / Hindi accent matching
    */
   const speakText = useCallback((text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
+      utterance.rate = 0.92;
+      utterance.pitch = 1.05;
+
+      const voices = window.speechSynthesis.getVoices();
+      const matchedVoice = voices.find(v => 
+        v.lang === 'hi-IN' || 
+        v.lang.startsWith('hi') || 
+        v.name.toLowerCase().includes('hindi') || 
+        v.name.toLowerCase().includes('swara') ||
+        v.name.toLowerCase().includes('madhur') ||
+        v.name.toLowerCase().includes('kalpana') ||
+        v.name.toLowerCase().includes('hemant')
+      ) || voices.find(v => 
+        v.lang === 'en-IN' || 
+        v.name.toLowerCase().includes('india') || 
+        v.name.toLowerCase().includes('neerja') ||
+        v.name.toLowerCase().includes('heera')
+      ) || voices.find(v => 
+        v.name.toLowerCase().includes('zira') || 
+        v.name.toLowerCase().includes('samantha')
+      );
+
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+        utterance.lang = matchedVoice.lang;
+      } else {
+        utterance.lang = 'hi-IN';
+      }
+
       setVoiceState(prev => ({ ...prev, isSpeaking: true }));
       utterance.onend = () => {
         setVoiceState(prev => ({ ...prev, isSpeaking: false }));
@@ -180,7 +207,7 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       });
 
       const data = await res.json();
-      const replyText = data.response || "I'm here to help. How are you feeling right now?";
+      const replyText = data.response || "Main aapki madad ke liye yahan hoon. Aap kaisa mehsoos kar rahe hain?";
 
       const assistantMessage: ConversationMessage = {
         id: (Date.now() + 1).toString(),
@@ -195,8 +222,29 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       // Speak response out loud
       speakText(replyText);
 
-      if (data.escalateToHuman) {
-        console.log('Call escalated to live human agent. Ticket ID:', data.ticketId);
+      // If AI detects emergency, automatically bridge patient into the Agora live voice room
+      if (data.escalateToHuman && data.ticketId) {
+        const ticketChannel = data.ticketId;
+        console.log('Call escalated to live human agent. Auto-connecting to Agora channel:', ticketChannel);
+        
+        // Add status message informing user they are connected to the live room
+        setTimeout(() => {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: (Date.now() + 2).toString(),
+              role: 'assistant',
+              content: '🔴 Live Nurse Bridge Active: Aapka microphone connect ho chuka hai. Jaise hi nurse Accept karengi, aap unse baat kar payenge.',
+              timestamp: new Date(),
+            },
+          ]);
+        }, 1500);
+
+        try {
+          await connect(ticketChannel);
+        } catch (connErr) {
+          console.warn('Auto-connect to Agora voice channel notice:', connErr);
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -217,7 +265,7 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
         error: 'Failed to process with cloud AI' 
       }));
     }
-  }, [speakText]);
+  }, [speakText, connect]);
 
   /**
    * Start recording voice input with browser speech recognition
@@ -230,31 +278,51 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       if (SpeechRecognition) {
         try {
           const reco = new SpeechRecognition();
-          reco.lang = 'en-IN';
+          reco.lang = 'hi-IN';
           reco.continuous = false;
-          reco.interimResults = false;
+          reco.interimResults = true;
+
+          let capturedText = '';
 
           reco.onresult = (event: any) => {
-            const transcript = event.results?.[0]?.[0]?.transcript;
-            if (transcript) {
-              sendMessage(transcript);
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              if (event.results[i].isFinal) {
+                capturedText += event.results[i][0].transcript;
+              } else {
+                interim += event.results[i][0].transcript;
+              }
+            }
+            const current = capturedText || interim;
+            if (current) {
+              setVoiceState(prev => ({ ...prev, currentMessage: current }));
             }
           };
 
           reco.onerror = (event: any) => {
-            console.warn('Speech recognition status:', event.error);
+            console.warn('Speech recognition notice:', event.error);
             setVoiceState(prev => ({ ...prev, isRecording: false }));
           };
 
           reco.onend = () => {
-            setVoiceState(prev => ({ ...prev, isRecording: false }));
+            setVoiceState(prev => {
+              const textToSend = capturedText.trim() || prev.currentMessage.trim();
+              if (textToSend) {
+                setTimeout(() => sendMessage(textToSend), 100);
+              }
+              return { ...prev, isRecording: false, currentMessage: '' };
+            });
           };
 
           reco.start();
           setRecognitionInstance(reco);
         } catch (e) {
           console.warn('Speech recognition start failed:', e);
+          setVoiceState(prev => ({ ...prev, isRecording: false }));
         }
+      } else {
+        alert('Voice speech recognition is not supported in this browser. You can type in Hindi or English directly.');
+        setVoiceState(prev => ({ ...prev, isRecording: false }));
       }
     }
   }, [sendMessage]);

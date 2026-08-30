@@ -132,15 +132,20 @@ export function ChatInterface({
 
       {/* Voice Activity Indicator */}
       {voiceState.isRecording && (
-        <div className="px-4 py-2 bg-primary/10 border-t">
+        <div className="px-4 py-2 bg-primary/10 border-t flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
-              <div className="w-1 h-4 bg-primary animate-pulse" />
-              <div className="w-1 h-4 bg-primary animate-pulse delay-75" />
-              <div className="w-1 h-4 bg-primary animate-pulse delay-150" />
+              <div className="w-1.5 h-4 bg-red-500 animate-pulse" />
+              <div className="w-1.5 h-4 bg-red-500 animate-pulse delay-75" />
+              <div className="w-1.5 h-4 bg-red-500 animate-pulse delay-150" />
             </div>
-            <span className="text-sm text-primary">Listening...</span>
+            <span className="text-sm font-medium text-red-600">
+              {voiceState.currentMessage ? `"${voiceState.currentMessage}"` : 'Listening... Speak in Hindi or English'}
+            </span>
           </div>
+          <Button size="sm" variant="ghost" onClick={stopRecording} className="text-xs h-6 px-2 text-muted-foreground">
+            Done
+          </Button>
         </div>
       )}
 
@@ -156,16 +161,24 @@ export function ChatInterface({
         <div className="flex gap-2">
           {showVoiceControls && (
             <Button
-              variant={isVoiceMode ? 'default' : 'outline'}
+              type="button"
+              variant={voiceState.isRecording ? 'destructive' : 'outline'}
               size="icon"
-              onClick={handleVoiceToggle}
-              disabled={!voiceState.isConnected}
+              onClick={() => {
+                if (voiceState.isRecording) {
+                  stopRecording();
+                } else {
+                  startRecording();
+                }
+              }}
+              disabled={voiceState.isProcessing}
+              title={voiceState.isRecording ? 'Stop Recording' : 'Speak to AI'}
               className={cn(
                 'transition-all',
-                isVoiceMode && 'bg-primary animate-pulse'
+                voiceState.isRecording && 'animate-pulse'
               )}
             >
-              {isVoiceMode ? (
+              {voiceState.isRecording ? (
                 <Mic className="h-4 w-4" />
               ) : (
                 <MicOff className="h-4 w-4" />
@@ -175,11 +188,11 @@ export function ChatInterface({
 
           <Input
             ref={inputRef}
-            value={inputValue}
+            value={voiceState.isRecording && voiceState.currentMessage ? voiceState.currentMessage : inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            disabled={voiceState.isProcessing || isVoiceMode}
+            placeholder={voiceState.isRecording ? 'Listening...' : placeholder}
+            disabled={voiceState.isProcessing || voiceState.isRecording}
             className="flex-1"
           />
 

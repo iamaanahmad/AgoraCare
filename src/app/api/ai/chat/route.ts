@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         let app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        await setDoc(doc(db, 'supportTickets', ticketId), {
+        await setDoc(doc(db, 'support_tickets', ticketId), {
           id: ticketId,
           patientId,
           patientName,
@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
           summary: triageResult.understanding || 'Voice AI Triage Escalation',
           reason: triageResult.escalationReason || 'Patient reported critical distress or emergency',
           detectedLanguage: triageResult.detectedLanguage || 'mixed',
+          agoraChannel: ticketId,
           createdAt: new Date(),
+          updatedAt: new Date(),
         });
       } catch (err) {
         console.warn('Could not persist support ticket to Firestore directly in API route:', err);
