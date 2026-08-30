@@ -71,10 +71,10 @@ export const initialAppointments = [
 ];
 
 export const initialMedications = [
-    { name: 'Lisinopril', dosage: '10mg', schedule: 'Once daily', nextDose: '8:00 AM' },
-    { name: 'Metformin', dosage: '500mg', schedule: 'Twice daily', nextDose: '8:00 AM' },
-    { name: 'Simvastatin', dosage: '20mg', schedule: 'Once daily', nextDose: '8:00 PM' },
-    { name: 'Amlodipine', dosage: '5mg', schedule: 'Once daily', nextDose: '8:00 AM' },
+    { name: 'Lisinopril', dosage: '10mg', schedule: 'Once daily (Morning)', nextDose: '08:00 AM' },
+    { name: 'Metformin', dosage: '500mg', schedule: 'Twice daily (Afternoon)', nextDose: '01:00 PM' },
+    { name: 'Amlodipine', dosage: '5mg', schedule: 'Once daily (Evening)', nextDose: '06:30 PM' },
+    { name: 'Simvastatin', dosage: '20mg', schedule: 'Once daily (Bedtime)', nextDose: '09:00 PM' },
 ];
 
 export const initialVitals = [

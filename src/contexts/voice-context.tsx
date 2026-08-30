@@ -47,6 +47,8 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
   });
 
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const isSendingRef = React.useRef(false);
+  const lastSentRef = React.useRef<{ text: string; time: number }>({ text: '', time: 0 });
   const agoraService = getAgoraService();
 
   /**
@@ -60,47 +62,45 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
         throw new Error('Agora App ID not configured');
       }
 
-      setVoiceState(prev => ({ ...prev, error: null }));
+      // If already in this channel, don't reconnect
+      if (voiceState.isConnected && voiceState.channel === channel) {
+        return;
+      }
 
-      const finalUid = uid || Math.floor(Math.random() * 100000);
-      
-      const response = await fetch('/api/agora/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelName: channel, uid: finalUid }),
-      });
-      
-      const { token } = await response.json();
+      // Generate a dynamic numeric or clean string UID for the channel
+      const userUid = uid || `patient_${Math.floor(Math.random() * 10000)}`;
+
+      // Fetch RTC token from our serverless endpoint
+      let token: string | undefined = undefined;
+      try {
+        const tokenRes = await fetch(`/api/agora/token?channelName=${encodeURIComponent(channel)}&uid=${encodeURIComponent(userUid)}`);
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          token = tokenData.token;
+        }
+      } catch (tokenErr) {
+        console.warn('Could not fetch dynamic token, attempting fallback:', tokenErr);
+      }
 
       const config: VoiceConfig = {
         appId,
         channel,
-        uid: finalUid,
-        token: token || undefined,
-        mode: 'rtc',
-        codec: 'vp8',
+        token,
+        uid: userUid,
       };
 
-      // Set up event listeners
-      agoraService.on('connectionStateChange', handleConnectionStateChange);
-      agoraService.on('error', handleError);
-
-      // Connect to channel
       await agoraService.connect(config);
-      
-      // Enable volume indicator for voice activity detection
-      agoraService.enableVolumeIndicator(200);
-
+      setVoiceState(prev => ({ ...prev, isConnected: true, channel, error: null }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to connect';
-      setVoiceState(prev => ({ 
-        ...prev, 
-        error: errorMessage,
-        isConnected: false 
+      console.error('Failed to connect to Agora voice channel:', error);
+      setVoiceState(prev => ({
+        ...prev,
+        isConnected: false,
+        error: error instanceof Error ? error.message : 'Connection failed',
       }));
       throw error;
     }
-  }, []);
+  }, [agoraService, voiceState.isConnected, voiceState.channel]);
 
   /**
    * Disconnect from Agora voice channel
@@ -108,31 +108,27 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
   const disconnect = useCallback(async () => {
     try {
       await agoraService.disconnect();
-      setVoiceState({
-        isConnected: false,
-        isRecording: false,
-        isSpeaking: false,
-        isProcessing: false,
-        error: null,
-        currentMessage: '',
-      });
+      setVoiceState(prev => ({ ...prev, isConnected: false, channel: undefined }));
     } catch (error) {
-      console.error('Error disconnecting:', error);
+      console.error('Failed to disconnect from Agora:', error);
+      setVoiceState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Disconnect failed',
+      }));
     }
-  }, []);
+  }, [agoraService]);
 
   /**
    * Toggle microphone mute state
    */
   const toggleMute = useCallback(async () => {
     try {
-      const isMuted = agoraService.isMuted();
-      await agoraService.setMuted(!isMuted);
-      setVoiceState(prev => ({ ...prev, isRecording: isMuted }));
+      await agoraService.toggleMute();
+      setVoiceState(prev => ({ ...prev, isMuted: !prev.isMuted }));
     } catch (error) {
-      console.error('Error toggling mute:', error);
+      console.error('Failed to toggle mute:', error);
     }
-  }, []);
+  }, [agoraService]);
 
   const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
 
@@ -187,12 +183,26 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
    * Send a text message (runs real Genkit AI Triage & speaks response)
    */
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim()) return;
+    const cleanContent = content.trim();
+    if (!cleanContent) return;
+
+    // Deduplicate / debounce identical messages within 1.5 seconds or during active sending
+    const now = Date.now();
+    if (
+      isSendingRef.current ||
+      (lastSentRef.current.text === cleanContent && now - lastSentRef.current.time < 1500)
+    ) {
+      console.log('Debounced duplicate message send attempt:', cleanContent);
+      return;
+    }
+
+    isSendingRef.current = true;
+    lastSentRef.current = { text: cleanContent, time: now };
 
     const userMessage: ConversationMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content,
+      content: cleanContent,
       timestamp: new Date(),
     };
 
@@ -203,7 +213,7 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ message: cleanContent }),
       });
 
       const data = await res.json();
@@ -264,6 +274,8 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
         isProcessing: false,
         error: 'Failed to process with cloud AI' 
       }));
+    } finally {
+      isSendingRef.current = false;
     }
   }, [speakText, connect]);
 
@@ -283,17 +295,27 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
           reco.interimResults = true;
 
           let capturedText = '';
+          let hasDispatched = false;
+
+          const dispatchSpeech = () => {
+            if (hasDispatched) return;
+            const textToSend = capturedText.trim();
+            if (textToSend) {
+              hasDispatched = true;
+              sendMessage(textToSend);
+            }
+          };
 
           reco.onresult = (event: any) => {
             let interim = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
               if (event.results[i].isFinal) {
-                capturedText += event.results[i][0].transcript;
+                capturedText += ' ' + event.results[i][0].transcript;
               } else {
                 interim += event.results[i][0].transcript;
               }
             }
-            const current = capturedText || interim;
+            const current = (capturedText + ' ' + interim).trim();
             if (current) {
               setVoiceState(prev => ({ ...prev, currentMessage: current }));
             }
@@ -305,13 +327,8 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
           };
 
           reco.onend = () => {
-            setVoiceState(prev => {
-              const textToSend = capturedText.trim() || prev.currentMessage.trim();
-              if (textToSend) {
-                setTimeout(() => sendMessage(textToSend), 100);
-              }
-              return { ...prev, isRecording: false, currentMessage: '' };
-            });
+            dispatchSpeech();
+            setVoiceState(prev => ({ ...prev, isRecording: false, currentMessage: '' }));
           };
 
           reco.start();

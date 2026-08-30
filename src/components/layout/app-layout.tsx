@@ -51,25 +51,24 @@ async function seedInitialData(userId: string, firestore: any) {
   const caregiverRefForGeorge = doc(firestore, 'users', userId, 'caregivers', georgeId);
   batch.set(caregiverRefForGeorge, georgeProfile);
   
-  // 3. Add sample data to George's subcollections
-  const appointmentsColRef = collection(georgeDocRef, 'appointments');
+  // 3. Add sample data to George's subcollections with deterministic IDs
   initialAppointments.forEach((apt) => {
-    const newAptRef = doc(appointmentsColRef);
-    batch.set(newAptRef, { ...apt, id: newAptRef.id });
+    const aptId = `apt-${apt.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const aptDocRef = doc(georgeDocRef, 'appointments', aptId);
+    batch.set(aptDocRef, { ...apt, id: aptId });
   });
 
-  const medicationsColRef = collection(georgeDocRef, 'medications');
   initialMedications.forEach((med) => {
-    const newMedRef = doc(medicationsColRef);
-    batch.set(newMedRef, { ...med, id: newMedRef.id });
+    const medId = `med-${med.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const medDocRef = doc(georgeDocRef, 'medications', medId);
+    batch.set(medDocRef, { ...med, id: medId });
   });
 
-  const vitalsColRef = collection(georgeDocRef, 'vitals');
   initialVitals.forEach((vital) => {
-      const newVitalRef = doc(vitalsColRef);
-      batch.set(newVitalRef, { ...vital, id: newVitalRef.id });
+    const vitalId = `vital-${vital.date}`;
+    const vitalDocRef = doc(georgeDocRef, 'vitals', vitalId);
+    batch.set(vitalDocRef, { ...vital, id: vitalId });
   });
-
 
   await batch.commit();
 }

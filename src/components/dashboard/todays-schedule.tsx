@@ -34,16 +34,36 @@ export function TodaysSchedule() {
     }
   ) || [];
 
-  const scheduleItems = [
+  const parseTimeString = (timeStr?: string) => {
+    if (!timeStr || timeStr === 'As needed') return 999999;
+    const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+    if (!match) return 999999;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const meridian = match[3]?.toUpperCase();
+    if (meridian === 'PM' && hours < 12) hours += 12;
+    if (meridian === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
+
+  // Deduplicate items to prevent duplicate records from inflating the schedule
+  const uniqueItemsMap = new Map<string, typeof rawScheduleItems[0]>();
+  const rawScheduleItems = [
     ...todaysAppointments.map(item => ({ ...item, type: 'appointment' as const })),
     ...(medications || []).map(item => ({ ...item, type: 'medication' as const }))
-  ].sort((a, b) => {
+  ];
+
+  rawScheduleItems.forEach(item => {
+    const key = item.type === 'medication' ? `med-${item.name}` : `apt-${item.title}-${item.time}`;
+    if (!uniqueItemsMap.has(key)) {
+      uniqueItemsMap.set(key, item);
+    }
+  });
+
+  const scheduleItems = Array.from(uniqueItemsMap.values()).sort((a, b) => {
     const timeA = a.type === 'appointment' ? a.time : a.nextDose;
     const timeB = b.type === 'appointment' ? b.time : b.nextDose;
-    if (timeA === 'As needed') return 1;
-    if (timeB === 'As needed') return -1;
-    // This is a simplification. A robust solution would handle different time formats.
-    return new Date(`1970/01/01 ${timeA}`).getTime() - new Date(`1970/01/01 ${timeB}`).getTime();
+    return parseTimeString(timeA) - parseTimeString(timeB);
   });
 
   const isLoading = appointmentsLoading || medicationsLoading;
