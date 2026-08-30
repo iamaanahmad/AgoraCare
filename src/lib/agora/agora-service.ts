@@ -208,10 +208,19 @@ export class AgoraService {
 
     // User published audio
     this.client.on('user-published', async (user: IAgoraRTCRemoteUser, mediaType: 'audio' | 'video') => {
+      console.log('Agora user published event:', user.uid, mediaType);
       if (mediaType === 'audio') {
-        await this.client!.subscribe(user, mediaType);
-        console.log('Subscribed to user audio:', user.uid);
-        user.audioTrack?.play();
+        try {
+          const remoteTrack = await this.client!.subscribe(user, mediaType);
+          console.log('Subscribed to user audio successfully:', user.uid);
+          if (remoteTrack) {
+            remoteTrack.play();
+          } else if (user.audioTrack) {
+            user.audioTrack.play();
+          }
+        } catch (subErr) {
+          console.error('Error subscribing to remote audio track:', subErr);
+        }
       }
     });
 

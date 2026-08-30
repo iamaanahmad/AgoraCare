@@ -40,11 +40,8 @@ export function FloatingVoiceAssistant() {
           </SheetDescription>
         </SheetHeader>
         
-        <div className="flex-1 overflow-hidden p-6 pt-2 flex flex-col gap-4">
-          <VoiceControlPanel className="shrink-0 shadow-sm" />
-          <div className="flex-1 min-h-0">
-            <ChatInterface className="h-full shadow-sm" />
-          </div>
+        <div className="flex-1 overflow-hidden p-6 pt-2 flex flex-col">
+          <ChatInterface className="h-full shadow-sm" />
         </div>
       </SheetContent>
     </Sheet>

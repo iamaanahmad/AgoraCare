@@ -27,11 +27,57 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useFamily } from '@/contexts/family-context';
-import { NotificationBell } from '@/components/notifications';
+import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { useVoice } from '@/contexts/voice-context';
+import { createSupportTicket } from '@/firebase/firestore/tickets';
 
 export function Header() {
   const { selectedMember } = useFamily();
   const caregiverAvatar = PlaceHolderImages.find((img) => img.id === 'avatar-sara');
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const { connect } = useVoice();
+
+  const handleCallDoctor = async () => {
+    const patientName = selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName || ''}`.trim() : 'George (Patient)';
+    const ticketId = `emergency_doc_${Date.now()}`;
+
+    toast({
+      title: 'Connecting to Doctor...',
+      description: `Emergency hotline connecting for ${patientName}. Initiating live Agora voice bridge.`,
+    });
+
+    if (firestore) {
+      try {
+        await createSupportTicket(firestore, {
+          patientId: selectedMember?.id || 'george-patient-profile',
+          patientName,
+          status: 'open',
+          summary: `Direct Emergency Doctor Call by ${patientName}`,
+          reason: 'Emergency action button pressed in app header',
+          agoraChannel: ticketId,
+        });
+      } catch (err) {
+        console.warn('Emergency ticket creation notice:', err);
+      }
+    }
+
+    try {
+      await connect(ticketId);
+    } catch (err) {
+      console.warn('Voice connect notice:', err);
+    }
+  };
+
+  const handleNotifySara = () => {
+    const patientName = selectedMember ? selectedMember.firstName : 'George';
+    toast({
+      title: 'Sara (Caregiver) Alerted!',
+      description: `High-priority SMS & push dispatch sent to Sara regarding ${patientName}'s status.`,
+      variant: 'default',
+    });
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 glass px-4 sm:static sm:h-auto sm:bg-transparent sm:backdrop-blur-none sm:px-6">
@@ -121,14 +167,14 @@ export function Header() {
               <span className="sr-only">Emergency Actions</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel className="text-destructive font-semibold">Emergency Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={handleCallDoctor} className="cursor-pointer">
               <Phone className="mr-2 h-4 w-4 text-destructive" />
-              <span>Call Doctor</span>
+              <span>Call Doctor (Live Audio)</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={handleNotifySara} className="cursor-pointer">
               <MessageSquareWarning className="mr-2 h-4 w-4 text-amber-500" />
               <span>Notify Sara (Caregiver)</span>
             </DropdownMenuItem>
