@@ -16,10 +16,25 @@ import {
   AreaChart,
   Line,
 } from 'recharts';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { Heart, Activity } from 'lucide-react';
 import type { VitalSign } from '@/lib/types';
 import { collection } from 'firebase/firestore';
+
+const vitalsChartConfig = {
+  heartRate: {
+    label: "Heart Rate (bpm)",
+    color: "hsl(var(--primary))",
+  },
+  systolic: {
+    label: "Systolic",
+    color: "hsl(var(--chart-2))",
+  },
+  diastolic: {
+    label: "Diastolic",
+    color: "hsl(var(--chart-5))",
+  },
+} satisfies ChartConfig;
 
 export default function VitalsPage() {
   const { selectedMember } = useFamily();
@@ -43,9 +58,9 @@ export default function VitalsPage() {
                     <Heart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{latestVital?.heartRate ?? 'N/A'} bpm</div>
+                    <div className="text-2xl font-bold">{latestVital?.heartRate || 'N/A'} bpm</div>
                     <p className="text-xs text-muted-foreground">
-                        Latest reading
+                        Latest recorded
                     </p>
                 </CardContent>
             </Card>
@@ -70,7 +85,7 @@ export default function VitalsPage() {
               <CardDescription>Last 30 days</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ChartContainer config={vitalsChartConfig} className="min-h-[300px] w-full">
                 <LineChart data={memberVitals}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
@@ -86,7 +101,7 @@ export default function VitalsPage() {
                     dot={false}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
           <Card>
@@ -95,7 +110,7 @@ export default function VitalsPage() {
               <CardDescription>Last 30 days</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ChartContainer config={vitalsChartConfig} className="min-h-[300px] w-full">
                 <AreaChart data={memberVitals}>
                    <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
@@ -119,7 +134,7 @@ export default function VitalsPage() {
                     name="Diastolic"
                   />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
         </div>
