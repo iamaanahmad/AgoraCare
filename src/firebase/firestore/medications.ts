@@ -203,7 +203,7 @@ export async function getMedications(
     );
   }
 
-  return snapshot.docs.map((docSnap) => {
+  const rawMeds = snapshot.docs.map((docSnap) => {
     const data = docSnap.data();
     return {
       id: docSnap.id,
@@ -216,6 +216,17 @@ export async function getMedications(
       updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt ? new Date(data.updatedAt) : new Date()),
     } as Medication;
   });
+
+  // Deduplicate medications by unique name to eliminate any legacy duplicate documents
+  const uniqueMedsMap = new Map<string, Medication>();
+  rawMeds.forEach((med) => {
+    const key = (med.name || '').trim().toLowerCase();
+    if (key && !uniqueMedsMap.has(key)) {
+      uniqueMedsMap.set(key, med);
+    }
+  });
+
+  return Array.from(uniqueMedsMap.values());
 }
 
 /**

@@ -29,7 +29,18 @@ export function MedicationList({
   onMarkTaken,
   adherenceData = {},
 }: MedicationListProps) {
-  if (medications.length === 0) {
+  // Deduplicate medications by name to prevent rendering duplicates
+  const uniqueMedications = Array.from(
+    medications.reduce((map, med) => {
+      const key = (med.name || '').trim().toLowerCase();
+      if (key && !map.has(key)) {
+        map.set(key, med);
+      }
+      return map;
+    }, new Map<string, Medication>()).values()
+  );
+
+  if (uniqueMedications.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -46,7 +57,7 @@ export function MedicationList({
 
   return (
     <div className="space-y-4">
-      {medications.map((medication) => (
+      {uniqueMedications.map((medication) => (
         <MedicationCard
           key={medication.id}
           medication={medication}

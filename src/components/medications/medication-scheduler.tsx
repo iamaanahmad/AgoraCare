@@ -39,7 +39,18 @@ export function MedicationScheduler({
   const scheduleItems = useMemo(() => {
     const items: ScheduleItem[] = [];
 
-    medications.forEach((medication) => {
+    // Deduplicate medications by unique name
+    const uniqueMeds = Array.from(
+      medications.reduce((map, med) => {
+        const key = (med.name || '').trim().toLowerCase();
+        if (key && !map.has(key)) {
+          map.set(key, med);
+        }
+        return map;
+      }, new Map<string, Medication>()).values()
+    );
+
+    uniqueMeds.forEach((medication) => {
       // Normalize frequency
       const frequency: MedicationFrequency = medication.frequency?.type
         ? medication.frequency
