@@ -184,25 +184,36 @@ export async function getMedications(
   userId: string,
   profileId: string
 ): Promise<Medication[]> {
-  const medicationsRef = collection(
-    firestore,
-    'users',
-    userId,
-    'profiles',
-    profileId,
-    'medications'
+  // 1. Try profiles subcollection first
+  let snapshot = await getDocs(
+    collection(firestore, 'users', userId, 'profiles', profileId, 'medications')
   );
-  const q = query(medicationsRef, orderBy('createdAt', 'desc'));
-  const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((doc) => {
-    const data = doc.data();
+  // 2. Fallback to direct patient subcollection (e.g. users/george-patient-profile/medications)
+  if (snapshot.empty && profileId) {
+    snapshot = await getDocs(
+      collection(firestore, 'users', profileId, 'medications')
+    );
+  }
+
+  // 3. Fallback to user root medications
+  if (snapshot.empty && userId) {
+    snapshot = await getDocs(
+      collection(firestore, 'users', userId, 'medications')
+    );
+  }
+
+  return snapshot.docs.map((docSnap) => {
+    const data = docSnap.data();
     return {
+      id: docSnap.id,
       ...data,
-      startDate: data.startDate?.toDate() || new Date(),
-      endDate: data.endDate?.toDate(),
-      createdAt: data.createdAt?.toDate() || new Date(),
-      updatedAt: data.updatedAt?.toDate() || new Date(),
+      frequency: data.frequency || { type: 'daily' },
+      timing: data.timing || [{ time: '08:00', relation: 'morning' }],
+      startDate: data.startDate?.toDate ? data.startDate.toDate() : (data.startDate ? new Date(data.startDate) : new Date()),
+      endDate: data.endDate?.toDate ? data.endDate.toDate() : (data.endDate ? new Date(data.endDate) : undefined),
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
+      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt ? new Date(data.updatedAt) : new Date()),
     } as Medication;
   });
 }
@@ -215,36 +226,8 @@ export async function getActiveMedications(
   userId: string,
   profileId: string
 ): Promise<Medication[]> {
-  const medicationsRef = collection(
-    firestore,
-    'users',
-    userId,
-    'profiles',
-    profileId,
-    'medications'
-  );
-  
-  const now = Timestamp.now();
-  const q = query(
-    medicationsRef,
-    where('startDate', '<=', now),
-    orderBy('startDate', 'desc')
-  );
-  
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs
-    .map((doc) => {
-      const data = doc.data();
-      return {
-        ...data,
-        startDate: data.startDate?.toDate() || new Date(),
-        endDate: data.endDate?.toDate(),
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-      } as Medication;
-    })
-    .filter((med) => !med.endDate || med.endDate > new Date());
+  const allMeds = await getMedications(firestore, userId, profileId);
+  return allMeds.filter((med) => !med.endDate || med.endDate > new Date());
 }
 
 /**

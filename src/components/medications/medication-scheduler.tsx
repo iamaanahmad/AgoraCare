@@ -40,17 +40,61 @@ export function MedicationScheduler({
     const items: ScheduleItem[] = [];
 
     medications.forEach((medication) => {
+      // Normalize frequency
+      const frequency: MedicationFrequency = medication.frequency?.type
+        ? medication.frequency
+        : { type: 'daily' };
+
+      // Normalize timing
+      let timing: MedicationTiming[] = medication.timing && Array.isArray(medication.timing) && medication.timing.length > 0
+        ? medication.timing
+        : [];
+
+      if (timing.length === 0 && (medication as any).nextDose) {
+        const match = (medication as any).nextDose.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (match) {
+          let hours = parseInt(match[1], 10);
+          const minutes = parseInt(match[2], 10);
+          const meridian = match[3]?.toUpperCase();
+          if (meridian === 'PM' && hours < 12) hours += 12;
+          if (meridian === 'AM' && hours === 12) hours = 0;
+          timing = [{ time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` }];
+        }
+      }
+
+      if (timing.length === 0) {
+        timing = [{ time: '08:00', relation: 'morning' }];
+      }
+
+      // Normalize startDate
+      let startDate = new Date('2024-01-01');
+      if (medication.startDate) {
+        if (typeof (medication.startDate as any).toDate === 'function') {
+          startDate = (medication.startDate as any).toDate();
+        } else if (medication.startDate instanceof Date) {
+          startDate = medication.startDate;
+        } else {
+          startDate = new Date(medication.startDate);
+        }
+      }
+
       const doses = getTodaysScheduledDoses(
-        medication.frequency,
-        medication.timing,
-        medication.startDate
+        frequency,
+        timing,
+        startDate,
+        now
       );
 
       doses.forEach((dose) => {
         const adherenceRecord = adherenceRecords.find(
-          (record) =>
-            record.medicationId === medication.id &&
-            Math.abs(record.scheduledTime.getTime() - dose.date.getTime()) < 60000 // Within 1 minute
+          (record) => {
+            const recordTime = record.scheduledTime instanceof Date
+              ? record.scheduledTime.getTime()
+              : typeof (record.scheduledTime as any)?.toDate === 'function'
+              ? (record.scheduledTime as any).toDate().getTime()
+              : new Date(record.scheduledTime).getTime();
+            return record.medicationId === medication.id && Math.abs(recordTime - dose.date.getTime()) < 60000;
+          }
         );
 
         const isPast = isBefore(dose.date, now);
@@ -72,7 +116,7 @@ export function MedicationScheduler({
   const upcomingItems = scheduleItems.filter((item) => !item.isPast && !item.adherenceRecord);
   const completedItems = scheduleItems.filter((item) => item.adherenceRecord?.status === 'taken');
   const missedItems = scheduleItems.filter(
-    (item) => item.isPast && !item.adherenceRecord && item.medication.frequency.type !== 'as-needed'
+    (item) => item.isPast && !item.adherenceRecord && item.medication.frequency?.type !== 'as-needed'
   );
 
   return (

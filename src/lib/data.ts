@@ -71,10 +71,54 @@ export const initialAppointments = [
 ];
 
 export const initialMedications = [
-    { name: 'Lisinopril', dosage: '10mg', schedule: 'Once daily (Morning)', nextDose: '08:00 AM' },
-    { name: 'Metformin', dosage: '500mg', schedule: 'Twice daily (Afternoon)', nextDose: '01:00 PM' },
-    { name: 'Amlodipine', dosage: '5mg', schedule: 'Once daily (Evening)', nextDose: '06:30 PM' },
-    { name: 'Simvastatin', dosage: '20mg', schedule: 'Once daily (Bedtime)', nextDose: '09:00 PM' },
+  {
+    name: 'Lisinopril',
+    dosage: '10mg',
+    schedule: 'Once daily (Morning)',
+    nextDose: '08:00 AM',
+    frequency: { type: 'daily' as const },
+    timing: [{ time: '08:00', relation: 'morning' as const }],
+    instructions: 'Take 1 tablet in the morning with breakfast',
+    startDate: Timestamp.fromDate(new Date('2024-01-01')),
+    createdAt: Timestamp.fromDate(new Date()),
+    updatedAt: Timestamp.fromDate(new Date()),
+  },
+  {
+    name: 'Metformin',
+    dosage: '500mg',
+    schedule: 'Twice daily (Afternoon)',
+    nextDose: '01:00 PM',
+    frequency: { type: 'daily' as const },
+    timing: [{ time: '13:00', relation: 'afternoon' as const }],
+    instructions: 'Take 1 tablet with lunch',
+    startDate: Timestamp.fromDate(new Date('2024-01-01')),
+    createdAt: Timestamp.fromDate(new Date()),
+    updatedAt: Timestamp.fromDate(new Date()),
+  },
+  {
+    name: 'Amlodipine',
+    dosage: '5mg',
+    schedule: 'Once daily (Evening)',
+    nextDose: '06:30 PM',
+    frequency: { type: 'daily' as const },
+    timing: [{ time: '18:30', relation: 'evening' as const }],
+    instructions: 'Take 1 tablet in the evening with dinner',
+    startDate: Timestamp.fromDate(new Date('2024-01-01')),
+    createdAt: Timestamp.fromDate(new Date()),
+    updatedAt: Timestamp.fromDate(new Date()),
+  },
+  {
+    name: 'Simvastatin',
+    dosage: '20mg',
+    schedule: 'Once daily (Bedtime)',
+    nextDose: '09:00 PM',
+    frequency: { type: 'daily' as const },
+    timing: [{ time: '21:00', relation: 'bedtime' as const }],
+    instructions: 'Take 1 tablet at bedtime',
+    startDate: Timestamp.fromDate(new Date('2024-01-01')),
+    createdAt: Timestamp.fromDate(new Date()),
+    updatedAt: Timestamp.fromDate(new Date()),
+  },
 ];
 
 export const initialVitals = [
