@@ -1,8 +1,8 @@
-# 🏥 AgoraCare - Voice AI Medical Triage Agent
+# 🏥 AgoraCare - Voice AI Medical Triage & Remote Patient Care
 
-> **Built for EchoSphere: Agora Conversational AI Hackathon (Track 5)**
+> **Real-time, Multilingual Voice AI with Instant Human Escalation via Agora RTC**
 
-AgoraCare is a real-time, multilingual Voice AI agent designed for non-clinical medical triage and support lines. It acts as a frontline conversational agent that can handle stressed callers, collect essential information, and intelligently escalate the call to a human operator when necessary.
+AgoraCare is a real-time, multilingual Voice AI telehealth platform designed for remote patient care, medication adherence, and emergency triage. It acts as a frontline conversational healthcare assistant that can support patients in English and Hindi, monitor vitals, manage prescriptions, and intelligently escalate urgent emergencies to human nurses over crystal-clear real-time audio.
 
 [![Built with Next.js](https://img.shields.io/badge/Next.js-15.3-black?logo=next.js)](https://nextjs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-11.9-orange?logo=firebase)](https://firebase.google.com/)
@@ -11,17 +11,16 @@ AgoraCare is a real-time, multilingual Voice AI agent designed for non-clinical 
 
 ---
 
-## 🎯 Track 5: Multilingual Assistance-Line Agent with Human Escalation
-
-This project was specifically tailored for the **EchoSphere Hackathon - Track 5**. It addresses the challenge of building a voice AI agent that can handle complex, multi-lingual callers while strictly adhering to safety guardrails (no medical advice).
-
-### Key Hackathon Requirements Met:
-- ✅ **Multilingual & Code-Switched Interaction**: Supports English and Hindi natively. The AI understands when a user switches languages or uses phrases like *"bohot dard hai"* (I am in a lot of pain).
-- ✅ **Human Escalation with Context**: When the AI detects distress or an explicit request for a human, it summarizes the conversation and instantly pushes a ticket to the real-time **Live Agent Dashboard**.
-- ✅ **Safety Guardrails**: Strict system prompts prevent the AI from giving medical diagnoses, ensuring it acts only as an information-gathering triage layer.
-- ✅ **Ticketing System Integration**: Built on top of Firebase Firestore (`support_tickets`), allowing human operators to monitor and "Accept Calls" in real-time.
-
 ---
+
+## 💡 System Overview & Core Capabilities
+
+AgoraCare provides an intelligent, human-in-the-loop care coordination system designed to assist patients, seniors, and remote caregivers:
+
+- 🗣️ **Multilingual & Code-Switched Interaction**: Supports English, Hindi, and Hinglish natively. The AI agent understands natural speech patterns, phonetic variations, and language switching during health inquiries.
+- 🚨 **Intelligent Human Escalation**: When acute distress or medical emergencies are detected, the system immediately establishes a live **Agora RTC voice bridge** and notifies hospital triage nurses in real time.
+- 🛡️ **Medical Safety Guardrails**: Built with strict conversational guardrails that prioritize emergency dispatch and informational support without offering unauthorized clinical diagnoses.
+- 📋 **Integrated Patient Care Suite**: Includes daily medication scheduling with adherence tracking, interactive cardiovascular vitals charts, and prescription OCR digitization.
 
 ## ✨ Features
 
