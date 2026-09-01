@@ -38,6 +38,9 @@ export interface VoiceState {
   isProcessing: boolean;
   error: string | null;
   currentMessage: string;
+  language?: string;
+  isMuted?: boolean;
+  channel?: string;
 }
 
 export interface AgoraCallConfig {

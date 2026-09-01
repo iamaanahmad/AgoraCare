@@ -19,8 +19,10 @@ interface VoiceContextType {
   voiceState: VoiceState;
   messages: ConversationMessage[];
   isConnected: boolean;
+  voiceLanguage: 'en-IN' | 'hi-IN';
   
   // Actions
+  setVoiceLanguage: (lang: 'en-IN' | 'hi-IN') => void;
   connect: (channel: string, uid?: string | number) => Promise<void>;
   disconnect: () => Promise<void>;
   toggleMute: () => Promise<void>;
@@ -37,6 +39,7 @@ interface VoiceProviderProps {
 }
 
 export function VoiceProvider({ children }: VoiceProviderProps) {
+  const [voiceLanguage, setVoiceLanguage] = useState<'en-IN' | 'hi-IN'>('en-IN');
   const [voiceState, setVoiceState] = useState<VoiceState>({
     isConnected: false,
     isRecording: false,
@@ -44,6 +47,7 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
     isProcessing: false,
     error: null,
     currentMessage: '',
+    language: 'en-IN',
   });
 
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -294,7 +298,7 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       if (SpeechRecognition) {
         try {
           const reco = new SpeechRecognition();
-          reco.lang = 'hi-IN';
+          reco.lang = voiceLanguage;
           reco.continuous = false;
           reco.interimResults = true;
 
@@ -346,7 +350,7 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
         setVoiceState(prev => ({ ...prev, isRecording: false }));
       }
     }
-  }, [sendMessage]);
+  }, [sendMessage, voiceLanguage]);
 
   /**
    * Stop recording voice input
@@ -405,6 +409,8 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
     voiceState,
     messages,
     isConnected: voiceState.isConnected,
+    voiceLanguage,
+    setVoiceLanguage,
     connect,
     disconnect,
     toggleMute,

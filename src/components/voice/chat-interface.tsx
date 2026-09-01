@@ -30,7 +30,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ 
   className,
   showVoiceControls = true,
-  placeholder = 'Type a message or use voice...'
+  placeholder = 'Type a message or speak in English / Hindi...'
 }: ChatInterfaceProps) {
   const { 
     voiceState, 
@@ -38,7 +38,9 @@ export function ChatInterface({
     sendMessage,
     toggleMute,
     startRecording,
-    stopRecording 
+    stopRecording,
+    voiceLanguage,
+    setVoiceLanguage,
   } = useVoice();
 
   const [inputValue, setInputValue] = useState('');
@@ -68,15 +70,6 @@ export function ChatInterface({
     }
   };
 
-  const handleVoiceToggle = () => {
-    if (isVoiceMode) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-    setIsVoiceMode(!isVoiceMode);
-  };
-
   return (
     <Card className={cn('flex flex-col h-full', className)}>
       {/* Messages Area */}
@@ -84,10 +77,26 @@ export function ChatInterface({
         <div className="space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              <p>Start a conversation...</p>
-              <p className="text-sm mt-2">
-                {showVoiceControls ? 'Type or speak your message' : 'Type your message'}
+              <p className="font-semibold text-foreground">Aria Health Assistant</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Ask about medications, symptoms, or check-ups in English or Hindi.
               </p>
+              <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
+                <button
+                  type="button"
+                  onClick={() => sendMessage('When should I take my Lisinopril medication?')}
+                  className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2.5 py-1 rounded-full transition-colors"
+                >
+                  "When should I take Lisinopril?"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => sendMessage('Mujhe heart pain aur saans lene me dikkat ho rahi hai')}
+                  className="text-xs bg-red-500/10 text-red-600 hover:bg-red-500/20 px-2.5 py-1 rounded-full transition-colors"
+                >
+                  "Emergency Help"
+                </button>
+              </div>
             </div>
           ) : (
             messages.map((message) => (
@@ -100,20 +109,15 @@ export function ChatInterface({
               >
                 <div
                   className={cn(
-                    'max-w-[80%] rounded-lg px-4 py-2',
+                    'max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm text-sm',
                     message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
+                      ? 'bg-primary text-primary-foreground rounded-br-none'
+                      : 'bg-muted/80 text-foreground border rounded-bl-none'
                   )}
                 >
-                  <p className="text-sm">{message.content}</p>
-                  {message.transcription && (
-                    <p className="text-xs opacity-70 mt-1">
-                      Transcription: {message.transcription}
-                    </p>
-                  )}
-                  <p className="text-xs opacity-70 mt-1">
-                    {message.timestamp.toLocaleTimeString()}
+                  <p className="leading-relaxed">{message.content}</p>
+                  <p className="text-[10px] opacity-60 mt-1 text-right">
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>
@@ -122,8 +126,9 @@ export function ChatInterface({
           
           {voiceState.isProcessing && (
             <div className="flex justify-start">
-              <div className="bg-muted rounded-lg px-4 py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="bg-muted/80 rounded-2xl px-4 py-3 border flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">Aria is thinking...</span>
               </div>
             </div>
           )}
@@ -132,18 +137,18 @@ export function ChatInterface({
 
       {/* Voice Activity Indicator */}
       {voiceState.isRecording && (
-        <div className="px-4 py-2 bg-primary/10 border-t flex items-center justify-between">
+        <div className="px-4 py-2 bg-red-500/10 border-t flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
               <div className="w-1.5 h-4 bg-red-500 animate-pulse" />
               <div className="w-1.5 h-4 bg-red-500 animate-pulse delay-75" />
               <div className="w-1.5 h-4 bg-red-500 animate-pulse delay-150" />
             </div>
-            <span className="text-sm font-medium text-red-600">
-              {voiceState.currentMessage ? `"${voiceState.currentMessage}"` : 'Listening... Speak in Hindi or English'}
+            <span className="text-xs font-medium text-red-600">
+              {voiceState.currentMessage ? `"${voiceState.currentMessage}"` : 'Listening in Hinglish/English...'}
             </span>
           </div>
-          <Button size="sm" variant="ghost" onClick={stopRecording} className="text-xs h-6 px-2 text-muted-foreground">
+          <Button size="sm" variant="ghost" onClick={stopRecording} className="text-xs h-6 px-2 text-red-700 hover:bg-red-500/20">
             Done
           </Button>
         </div>
@@ -152,12 +157,39 @@ export function ChatInterface({
       {/* Error Display */}
       {voiceState.error && (
         <div className="px-4 py-2 bg-destructive/10 border-t">
-          <p className="text-sm text-destructive">{voiceState.error}</p>
+          <p className="text-xs text-destructive">{voiceState.error}</p>
         </div>
       )}
 
       {/* Input Area */}
-      <div className="p-4 border-t">
+      <div className="p-3 border-t bg-background/50">
+        {/* Language selector bar */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] text-muted-foreground">Speech Language:</span>
+          <div className="flex gap-1 bg-muted/60 p-0.5 rounded-lg text-[11px]">
+            <button
+              type="button"
+              onClick={() => setVoiceLanguage('en-IN')}
+              className={cn(
+                'px-2 py-0.5 rounded-md font-medium transition-all',
+                voiceLanguage === 'en-IN' ? 'bg-background shadow-xs text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              🇮🇳 Hinglish / English
+            </button>
+            <button
+              type="button"
+              onClick={() => setVoiceLanguage('hi-IN')}
+              className={cn(
+                'px-2 py-0.5 rounded-md font-medium transition-all',
+                voiceLanguage === 'hi-IN' ? 'bg-background shadow-xs text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              🇮🇳 हिंदी
+            </button>
+          </div>
+        </div>
+
         <div className="flex gap-2">
           {showVoiceControls && (
             <Button
@@ -172,9 +204,9 @@ export function ChatInterface({
                 }
               }}
               disabled={voiceState.isProcessing}
-              title={voiceState.isRecording ? 'Stop Recording' : 'Speak to AI'}
+              title={voiceState.isRecording ? 'Stop Recording' : 'Speak to Aria'}
               className={cn(
-                'transition-all',
+                'transition-all shrink-0',
                 voiceState.isRecording && 'animate-pulse'
               )}
             >
@@ -193,13 +225,14 @@ export function ChatInterface({
             onKeyPress={handleKeyPress}
             placeholder={voiceState.isRecording ? 'Listening...' : placeholder}
             disabled={voiceState.isProcessing || voiceState.isRecording}
-            className="flex-1"
+            className="flex-1 text-sm"
           />
 
           <Button
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || voiceState.isProcessing}
             size="icon"
+            className="shrink-0"
           >
             {voiceState.isProcessing ? (
               <Loader2 className="h-4 w-4 animate-spin" />
