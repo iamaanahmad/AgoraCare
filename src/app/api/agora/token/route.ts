@@ -5,16 +5,89 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-// Note: In production, you should use Agora's official token generation library
-// npm install agora-access-token
-// For now, this is a simplified version
+function generateAgoraToken({
+  channelName,
+  uid,
+  role = 'publisher',
+  expirationTimeInSeconds = 3600,
+}: {
+  channelName: string;
+  uid?: string | number;
+  role?: string;
+  expirationTimeInSeconds?: number;
+}) {
+  const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID;
+  const appCertificate = process.env.AGORA_APP_CERTIFICATE;
 
-export async function POST(request: NextRequest) {
+  if (!appId) {
+    throw new Error('Agora App ID not configured');
+  }
+
+  if (!appCertificate || appCertificate === 'your_agora_certificate') {
+    console.warn('No Agora certificate configured - using empty token');
+    return {
+      token: '',
+      appId,
+      channel: channelName,
+      uid: uid || 0,
+    };
+  }
+
+  const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
+  const currentTimestamp = Math.floor(Date.now() / 1000);
+  const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+  const rtcRole = role === 'publisher' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+
+  let token = '';
+  let finalUid: string | number = 0;
+
+  if (typeof uid === 'number' || (typeof uid === 'string' && /^\d+$/.test(uid))) {
+    finalUid = typeof uid === 'number' ? uid : parseInt(uid, 10);
+    token = RtcTokenBuilder.buildTokenWithUid(
+      appId,
+      appCertificate,
+      channelName,
+      finalUid,
+      rtcRole,
+      privilegeExpiredTs
+    );
+  } else if (typeof uid === 'string' && uid.trim().length > 0) {
+    finalUid = uid.trim();
+    token = RtcTokenBuilder.buildTokenWithAccount(
+      appId,
+      appCertificate,
+      channelName,
+      finalUid,
+      rtcRole,
+      privilegeExpiredTs
+    );
+  } else {
+    finalUid = Math.floor(Math.random() * 900000) + 100000;
+    token = RtcTokenBuilder.buildTokenWithUid(
+      appId,
+      appCertificate,
+      channelName,
+      finalUid,
+      rtcRole,
+      privilegeExpiredTs
+    );
+  }
+
+  return {
+    token,
+    appId,
+    channel: channelName,
+    uid: finalUid,
+    expiresAt: privilegeExpiredTs,
+  };
+}
+
+export async function GET(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { channelName, uid, role = 'publisher', expirationTimeInSeconds = 3600 } = body;
+    const searchParams = request.nextUrl.searchParams;
+    const channelName = searchParams.get('channelName');
+    const uid = searchParams.get('uid') || undefined;
 
-    // Validate required fields
     if (!channelName) {
       return NextResponse.json(
         { error: 'Channel name is required' },
@@ -22,54 +95,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID;
-    const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+    const result = generateAgoraToken({ channelName, uid });
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error('Error generating Agora token (GET):', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to generate token' },
+      { status: 500 }
+    );
+  }
+}
 
-    if (!appId) {
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { channelName, uid, role, expirationTimeInSeconds } = body;
+
+    if (!channelName) {
       return NextResponse.json(
-        { error: 'Agora App ID not configured' },
-        { status: 500 }
+        { error: 'Channel name is required' },
+        { status: 400 }
       );
     }
 
-    // If no certificate is set, return empty token (for development only)
-    if (!appCertificate || appCertificate === 'your_agora_certificate') {
-      console.warn('No Agora certificate configured - using null token (development only)');
-      return NextResponse.json({
-        token: '',
-        appId,
-        channel: channelName,
-        uid: uid || 0,
-      });
-    }
-
-    const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
-    
-    // Convert uid to integer as expected by RtcTokenBuilder
-    const numericUid = uid ? parseInt(uid, 10) : 0;
-    
-    const token = RtcTokenBuilder.buildTokenWithUid(
-      appId,
-      appCertificate,
-      channelName,
-      numericUid,
-      role === 'publisher' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER,
-      privilegeExpiredTs
-    );
-
-    return NextResponse.json({
-      token: token,
-      appId,
-      channel: channelName,
-      uid: numericUid,
-      expiresAt: privilegeExpiredTs,
-    });
-  } catch (error) {
-    console.error('Error generating Agora token:', error);
+    const result = generateAgoraToken({ channelName, uid, role, expirationTimeInSeconds });
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error('Error generating Agora token (POST):', error);
     return NextResponse.json(
-      { error: 'Failed to generate token' },
+      { error: error.message || 'Failed to generate token' },
       { status: 500 }
     );
   }

@@ -67,16 +67,20 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
         return;
       }
 
-      // Generate a dynamic numeric or clean string UID for the channel
-      const userUid = uid || `patient_${Math.floor(Math.random() * 10000)}`;
+      // Generate a dynamic numeric UID for the channel (standard Agora RTC UID)
+      const userUid = uid ? (typeof uid === 'number' ? uid : parseInt(uid, 10) || uid) : (Math.floor(Math.random() * 800000) + 200000);
 
       // Fetch RTC token from our serverless endpoint
       let token: string | undefined = undefined;
+      let finalUid = userUid;
       try {
         const tokenRes = await fetch(`/api/agora/token?channelName=${encodeURIComponent(channel)}&uid=${encodeURIComponent(userUid)}`);
         if (tokenRes.ok) {
           const tokenData = await tokenRes.json();
           token = tokenData.token;
+          if (tokenData.uid !== undefined) {
+            finalUid = tokenData.uid;
+          }
         }
       } catch (tokenErr) {
         console.warn('Could not fetch dynamic token, attempting fallback:', tokenErr);
@@ -85,8 +89,8 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       const config: VoiceConfig = {
         appId,
         channel,
-        token,
-        uid: userUid,
+        token: token || undefined,
+        uid: finalUid,
       };
 
       await agoraService.connect(config);
