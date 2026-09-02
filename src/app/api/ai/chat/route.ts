@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supportTriage } from '@/ai/flows/support-triage';
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { firebaseConfig } from '@/firebase/config';
+
+// Initialize singleton Firestore instance for API routes
+const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,13 +27,6 @@ export async function POST(request: NextRequest) {
     if (triageResult.escalateToHuman) {
       ticketId = `ticket_${Date.now()}`;
       try {
-        const { initializeApp, getApps } = await import('firebase/app');
-        const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-        const { firebaseConfig } = await import('@/firebase/config');
-
-        let app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
         await setDoc(doc(db, 'support_tickets', ticketId), {
           id: ticketId,
           patientId,
