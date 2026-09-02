@@ -192,20 +192,27 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       utterance.pitch = 1.1; // Gentle female pitch
 
       const voices = window.speechSynthesis.getVoices();
+      
+      // Explicitly reject known male voices
+      const isFemale = (v: SpeechSynthesisVoice) => {
+        const name = v.name.toLowerCase();
+        return !name.includes('male') && !name.includes('hemant') && !name.includes('madhur');
+      };
+
       // Prioritize natural female Indian voices
       const matchedVoice = voices.find(v => 
         (v.lang === 'hi-IN' || v.lang.startsWith('hi')) &&
-        (v.name.toLowerCase().includes('swara') || v.name.toLowerCase().includes('kalpana') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'))
+        (v.name.toLowerCase().includes('swara') || v.name.toLowerCase().includes('kalpana') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural')) && isFemale(v)
+      ) || voices.find(v =>
+        (v.lang === 'hi-IN' || v.lang.startsWith('hi') || v.name.toLowerCase().includes('hindi')) && isFemale(v)
       ) || voices.find(v =>
         (v.lang === 'en-IN' || v.name.toLowerCase().includes('india')) &&
-        (v.name.toLowerCase().includes('neerja') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'))
+        (v.name.toLowerCase().includes('neerja') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural')) && isFemale(v)
       ) || voices.find(v => 
-        v.lang === 'hi-IN' || v.lang.startsWith('hi') || v.name.toLowerCase().includes('hindi')
+        (v.lang === 'en-IN' || v.name.toLowerCase().includes('india')) && isFemale(v)
       ) || voices.find(v => 
-        v.lang === 'en-IN' || v.name.toLowerCase().includes('india')
-      ) || voices.find(v => 
-        v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('female')
-      );
+        (v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('female')) && isFemale(v)
+      ) || voices.find(isFemale);
 
       if (matchedVoice) {
         utterance.voice = matchedVoice;

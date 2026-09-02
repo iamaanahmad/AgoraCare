@@ -9,9 +9,16 @@ const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 export async function POST(request: NextRequest) {
+  let requestBody: any = {};
   try {
-    const { message, patientId = 'george-patient-profile', patientName = 'George (Patient)' } = await request.json();
+    requestBody = await request.json();
+  } catch(e) {}
 
+  const patientId = requestBody.patientId || 'george-patient-profile';
+  const patientName = requestBody.patientName || 'George (Patient)';
+  const message = requestBody.message;
+
+  try {
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
@@ -55,11 +62,33 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in AI chat route:', error);
+    
+    // Create a support ticket even in fallback/error state to ensure user is connected to agent
+    const ticketId = `ticket_fallback_${Date.now()}`;
+    
+    try {
+      await setDoc(doc(db, 'support_tickets', ticketId), {
+        id: ticketId,
+        patientId,
+        patientName,
+        status: 'open',
+        summary: 'AI Engine Failure / Automatic Fallback Escalation',
+        reason: 'The AI engine encountered an error or rate limit, automatically bridging to human agent.',
+        detectedLanguage: 'mixed',
+        agoraChannel: ticketId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (err) {
+      console.warn('Could not persist fallback support ticket:', err);
+    }
+
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Internal Server Error',
-        response: 'Main samajh raha hoon ki aapko madad chahiye. Kripya thoda intezaar karein, hum doctor se contact kar rahe hain.',
+        response: 'Main samajh rahi hoon ki aapko madad chahiye. Kripya thoda intezaar karein, hum doctor se contact kar rahe hain.',
         escalateToHuman: true,
+        ticketId,
       },
       { status: 500 }
     );
