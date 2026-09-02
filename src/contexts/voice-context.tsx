@@ -53,10 +53,11 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const isSendingRef = React.useRef(false);
   const lastSentRef = React.useRef<{ text: string; time: number }>({ text: '', time: 0 });
+  const activeAgentIdRef = React.useRef<string | null>(null);
   const agoraService = getAgoraService();
 
   /**
-   * Connect to Agora voice channel
+   * Connect to Agora voice channel and spin up Agora Conversational AI Agent
    */
   const connect = useCallback(async (channel: string, uid?: string | number) => {
     try {
@@ -99,6 +100,26 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
 
       await agoraService.connect(config);
       setVoiceState(prev => ({ ...prev, isConnected: true, channel, error: null }));
+
+      // Initialize Agora Conversational AI Engine Agent for the channel
+      try {
+        const agentRes = await fetch('/api/agora/agent/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelName: channel,
+            userUid: finalUid,
+            language: voiceLanguage,
+          }),
+        });
+        if (agentRes.ok) {
+          const agentData = await agentRes.json();
+          activeAgentIdRef.current = agentData.session?.agentId || null;
+          console.log('[Agora Conversational AI] Agent session initialized:', agentData.session);
+        }
+      } catch (agentErr) {
+        console.warn('[Agora Conversational AI] Agent initialization notice:', agentErr);
+      }
     } catch (error) {
       console.error('Failed to connect to Agora voice channel:', error);
       setVoiceState(prev => ({
@@ -108,15 +129,35 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       }));
       throw error;
     }
-  }, [agoraService, voiceState.isConnected, voiceState.channel]);
+  }, [agoraService, voiceState.isConnected, voiceState.channel, voiceLanguage]);
 
   /**
-   * Disconnect from Agora voice channel
+   * Disconnect from Agora voice channel and terminate Conversational AI Agent
    */
   const disconnect = useCallback(async () => {
     try {
+      const channelToClose = voiceState.channel;
+      const agentToStop = activeAgentIdRef.current;
+
       await agoraService.disconnect();
       setVoiceState(prev => ({ ...prev, isConnected: false, channel: undefined }));
+
+      // Terminate Agora Conversational AI Agent session
+      if (channelToClose) {
+        try {
+          await fetch('/api/agora/agent/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              channelName: channelToClose,
+              agentId: agentToStop,
+            }),
+          });
+          activeAgentIdRef.current = null;
+        } catch (stopErr) {
+          console.warn('[Agora Conversational AI] Agent stop notice:', stopErr);
+        }
+      }
     } catch (error) {
       console.error('Failed to disconnect from Agora:', error);
       setVoiceState(prev => ({
@@ -124,7 +165,7 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
         error: error instanceof Error ? error.message : 'Disconnect failed',
       }));
     }
-  }, [agoraService]);
+  }, [agoraService, voiceState.channel]);
 
   /**
    * Toggle microphone mute state

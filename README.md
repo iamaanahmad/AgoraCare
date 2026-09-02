@@ -24,30 +24,30 @@ AgoraCare provides an intelligent, human-in-the-loop care coordination system de
 
 ## ✨ Features
 
-### 1. 🎤 Multilingual Voice Triage
-- Powered by the **Agora Conversational AI SDK**.
-- Capable of calmly collecting patient information, symptoms, and the reason for the call.
-- Handles interruptions naturally and adapts to the caller's pace.
+### 1. 🎙️ Agora Conversational AI Engine Agent
+- Built on the **Agora Conversational AI Engine** ([`src/lib/agora/convo-ai-service.ts`](file:///c:/Projects/AgoraCare/src/lib/agora/convo-ai-service.ts) & [`AGORA_CONVERSATIONAL_AI.md`](file:///c:/Projects/AgoraCare/AGORA_CONVERSATIONAL_AI.md)).
+- Server-side AI Agent (**Aria**) provisioned directly into the RTC channel with VAD, ASR, LLM reasoning, and natural voice synthesis.
+- Intelligent tool-calling webhooks (`/api/agora/agent/tool`) trigger instant human nurse escalation.
 
 ### 2. 👨‍💻 Live Agent Dashboard (Human-in-the-loop)
 - A dedicated web interface (`/agent`) for human operators.
 - Real-time synchronization of active escalation tickets.
-- Operators can view the AI's generated summary before accepting the call.
+- Web Audio API harmonic emergency alert chime rings automatically when patient emergency calls arrive.
 
 ### 3. 🎨 Premium Modern UI
-- Redesigned for the hackathon with a stunning Slate/Zinc aesthetic and modern blue accents.
+- Redesigned with a stunning Slate/Zinc aesthetic and modern medical blue accents.
 - Uses elegant glassmorphism (`backdrop-blur`) and micro-animations for a polished, professional feel.
-- Fully responsive layout tailored for both users and human operators.
+- Fully responsive layout tailored for both mobile patients and desktop nurse stations.
 
 ---
 
 ## 🛠️ Technology Stack
 
 - **Frontend**: Next.js 15, React 18, TailwindCSS 3.4, Radix UI
-- **Voice & RTC**: Agora Conversational AI SDK (Real-time voice layer)
+- **Voice & AI Engine**: **Agora Conversational AI Engine** & Agora RTC Web SDK v4
 - **Backend & Database**: Firebase 11.9 (Firestore, Auth)
-- **AI Orchestration**: Genkit AI (Prompt structuring, intent routing)
-- **Deployment**: Localhost / Cloud (Ready)
+- **AI Orchestration**: Google Gemini 2.5 Flash & Genkit AI (Prompt structuring, intent routing, safety guardrails)
+- **Deployment**: Vercel Production Deployment Ready
 
 ---
 
