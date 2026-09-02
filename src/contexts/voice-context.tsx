@@ -141,32 +141,29 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
   const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
 
   /**
-   * Speak text out loud using browser speech synthesis with Indian / Hindi accent matching
+   * Speak text out loud using browser speech synthesis with female Indian / Hindi accent matching
    */
   const speakText = useCallback((text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.92;
-      utterance.pitch = 1.05;
+      utterance.rate = 0.95;
+      utterance.pitch = 1.1; // Gentle female pitch
 
       const voices = window.speechSynthesis.getVoices();
+      // Prioritize natural female Indian voices
       const matchedVoice = voices.find(v => 
-        v.lang === 'hi-IN' || 
-        v.lang.startsWith('hi') || 
-        v.name.toLowerCase().includes('hindi') || 
-        v.name.toLowerCase().includes('swara') ||
-        v.name.toLowerCase().includes('madhur') ||
-        v.name.toLowerCase().includes('kalpana') ||
-        v.name.toLowerCase().includes('hemant')
+        (v.lang === 'hi-IN' || v.lang.startsWith('hi')) &&
+        (v.name.toLowerCase().includes('swara') || v.name.toLowerCase().includes('kalpana') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'))
+      ) || voices.find(v =>
+        (v.lang === 'en-IN' || v.name.toLowerCase().includes('india')) &&
+        (v.name.toLowerCase().includes('neerja') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'))
       ) || voices.find(v => 
-        v.lang === 'en-IN' || 
-        v.name.toLowerCase().includes('india') || 
-        v.name.toLowerCase().includes('neerja') ||
-        v.name.toLowerCase().includes('heera')
+        v.lang === 'hi-IN' || v.lang.startsWith('hi') || v.name.toLowerCase().includes('hindi')
       ) || voices.find(v => 
-        v.name.toLowerCase().includes('zira') || 
-        v.name.toLowerCase().includes('samantha')
+        v.lang === 'en-IN' || v.name.toLowerCase().includes('india')
+      ) || voices.find(v => 
+        v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('female')
       );
 
       if (matchedVoice) {
@@ -188,10 +185,22 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
   }, []);
 
   /**
+   * Normalize common speech-to-text mistranscriptions for medication names
+   */
+  const normalizeSpeechText = (rawText: string) => {
+    let text = rawText;
+    text = text.replace(/lenovo\s*screen|lenovo\s*pill|licenopril|lessenopril|listen\s*o\s*pril/gi, 'Lisinopril');
+    text = text.replace(/meat\s*for\s*me|met\s*for\s*me|meatformin|met\s*form/gi, 'Metformin');
+    text = text.replace(/am\s*lo\s*dip\s*in|amlodipin|amlo\s*dip/gi, 'Amlodipine');
+    text = text.replace(/same\s*waste|sim\s*vast\s*a\s*tin|simvast/gi, 'Simvastatin');
+    return text;
+  };
+
+  /**
    * Send a text message (runs real Genkit AI Triage & speaks response)
    */
   const sendMessage = useCallback(async (content: string) => {
-    const cleanContent = content.trim();
+    const cleanContent = normalizeSpeechText(content.trim());
     if (!cleanContent) return;
 
     // Deduplicate / debounce identical messages within 1.5 seconds or during active sending
