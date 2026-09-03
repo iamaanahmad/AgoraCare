@@ -25,7 +25,7 @@ export async function supportTriage(input: SupportTriageInput): Promise<SupportT
 const supportTriagePrompt = ai.definePrompt({
   name: 'supportTriagePrompt',
   input: { schema: SupportTriageInputSchema },
-  output: { schema: SupportTriageOutputSchema },
+  output: { schema: SupportTriageOutputSchema, format: 'json' },
   config: {
     temperature: 0.2,
     maxOutputTokens: 250,
