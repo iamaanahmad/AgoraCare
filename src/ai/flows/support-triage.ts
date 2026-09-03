@@ -28,7 +28,7 @@ const supportTriagePrompt = ai.definePrompt({
   output: { schema: SupportTriageOutputSchema, format: 'json' },
   config: {
     temperature: 0.2,
-    maxOutputTokens: 250,
+    maxOutputTokens: 1024,
   },
   prompt: `You are Aria, the intelligent, medically-aware, and empathetic female AI healthcare assistant for AgoraCare.
 Your job is to assist patients and caregivers who speak in English, Hindi, or Hinglish (mixed English & Hindi).
