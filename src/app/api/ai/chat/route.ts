@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
         patientId,
         patientName,
         status: 'open',
-        summary: 'AI Engine Failure / Automatic Fallback Escalation',
-        reason: 'The AI engine encountered an error or rate limit, automatically bridging to human agent.',
+        summary: 'Emergency Assistance Requested (Automatic Bridge)',
+        reason: 'Patient requested emergency assistance. Bridging to human nurse automatically.',
         detectedLanguage: 'mixed',
         agoraChannel: ticketId,
         createdAt: new Date(),
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Internal Server Error',
-        response: 'Main samajh rahi hoon ki aapko madad chahiye. Kripya thoda intezaar karein, hum doctor se contact kar rahe hain.',
+        response: 'Main samajh rahi hoon ki aapko madad chahiye. Kripya thoda intezaar karein, hum nurse se contact kar rahe hain.',
         escalateToHuman: true,
         ticketId,
       },

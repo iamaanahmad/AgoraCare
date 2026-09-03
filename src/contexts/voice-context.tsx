@@ -172,8 +172,9 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
    */
   const toggleMute = useCallback(async () => {
     try {
-      await agoraService.toggleMute();
-      setVoiceState(prev => ({ ...prev, isMuted: !prev.isMuted }));
+      const isCurrentlyMuted = agoraService.isMuted();
+      await agoraService.setMuted(!isCurrentlyMuted);
+      setVoiceState(prev => ({ ...prev, isMuted: !isCurrentlyMuted }));
     } catch (error) {
       console.error('Failed to toggle mute:', error);
     }
@@ -237,10 +238,10 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
    */
   const normalizeSpeechText = (rawText: string) => {
     let text = rawText;
-    text = text.replace(/lenovo\s*screen|lenovo\s*pill|licenopril|lessenopril|listen\s*o\s*pril/gi, 'Lisinopril');
-    text = text.replace(/meat\s*for\s*me|met\s*for\s*me|meatformin|met\s*form/gi, 'Metformin');
-    text = text.replace(/am\s*lo\s*dip\s*in|amlodipin|amlo\s*dip/gi, 'Amlodipine');
-    text = text.replace(/same\s*waste|sim\s*vast\s*a\s*tin|simvast/gi, 'Simvastatin');
+    text = text.replace(/lenovo\s*screen|lenovo\s*pill|lenovo|licenopril|lessenopril|listen\s*o\s*pril|lysinopril/gi, 'Lisinopril');
+    text = text.replace(/meat\s*for\s*me|met\s*for\s*me|meatformin|met\s*form|made\s*for\s*me|mac\s*for\s*me|matformin/gi, 'Metformin');
+    text = text.replace(/am\s*lo\s*dip\s*in|amlodipin|amlo\s*dip|am\s*load\s*a\s*pin|amlo\s*the\s*pin|amlo\s*d\s*pin/gi, 'Amlodipine');
+    text = text.replace(/same\s*waste|sim\s*vast\s*a\s*tin|simvast|sim\s*vast\s*setting|seam\s*waste|simba\s*statin/gi, 'Simvastatin');
     return text;
   };
 

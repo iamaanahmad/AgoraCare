@@ -15,6 +15,20 @@ export async function POST(request: NextRequest) {
 
     const result = await stopAgoraConversationalAgent(agentId || '', channelName);
 
+    try {
+      const { initializeApp, getApps } = require('firebase/app');
+      const { getFirestore, doc, updateDoc } = require('firebase/firestore');
+      const { firebaseConfig } = require('@/firebase/config');
+      const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      await updateDoc(doc(db, 'support_tickets', channelName), {
+        status: 'resolved',
+        updatedAt: new Date(),
+      });
+    } catch (err) {
+      console.warn('Could not update support ticket status to resolved on disconnect:', err);
+    }
+
     return NextResponse.json({
       success: true,
       result,
