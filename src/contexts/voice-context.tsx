@@ -317,8 +317,12 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
 
         try {
           await connect(ticketChannel);
-        } catch (connErr) {
+        } catch (connErr: any) {
           console.warn('Auto-connect to Agora voice channel notice:', connErr);
+          // Show alert to help debug why patient chat isn't connecting
+          if (typeof window !== 'undefined') {
+            alert('Failed to connect to Live Voice Call: ' + (connErr.message || connErr));
+          }
         }
       }
     } catch (error) {
@@ -455,12 +459,18 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
     }));
   }, []);
 
+  // Keep a stable ref to disconnect so cleanup only runs on actual unmount
+  const disconnectRef = React.useRef(disconnect);
+  useEffect(() => {
+    disconnectRef.current = disconnect;
+  }, [disconnect]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      disconnect();
+      disconnectRef.current();
     };
-  }, [disconnect]);
+  }, []);
 
   const value: VoiceContextType = {
     voiceState,
