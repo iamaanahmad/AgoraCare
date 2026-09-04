@@ -171,6 +171,17 @@ export default function PrescriptionsPage() {
       // Mark medication as added in prescription
       await markMedicationAddedToSchedule(prescriptionId, medication.name);
       
+      // Update local state to immediately show the Added badge
+      setSelectedPrescription(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          medications: prev.medications.map(m => 
+            m.name === medication.name ? { ...m, addedToSchedule: true } : m
+          )
+        };
+      });
+      
       toast({
         title: 'Medication added',
         description: `${medication.name} has been added to your medication schedule.`,

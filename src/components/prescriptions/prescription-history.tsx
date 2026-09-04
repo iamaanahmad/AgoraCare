@@ -59,7 +59,7 @@ export function PrescriptionHistory({
       pending: { 
         variant: 'secondary', 
         label: 'Pending',
-        icon: <Loader2 className="h-3 w-3 mr-1" />
+        icon: <Loader2 className="h-3 w-3 mr-1 animate-spin" />
       },
       processing: { 
         variant: 'secondary', 

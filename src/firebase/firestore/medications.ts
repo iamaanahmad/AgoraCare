@@ -184,26 +184,31 @@ export async function getMedications(
   userId: string,
   profileId: string
 ): Promise<Medication[]> {
-  // 1. Try profiles subcollection first
-  let snapshot = await getDocs(
+  // 1. Fetch from profiles subcollection (New correct path)
+  const snapshot1 = await getDocs(
     collection(firestore, 'users', userId, 'profiles', profileId, 'medications')
   );
 
-  // 2. Fallback to direct patient subcollection (e.g. users/george-patient-profile/medications)
-  if (snapshot.empty && profileId) {
-    snapshot = await getDocs(
+  // 2. Fetch from direct patient subcollection (Legacy path)
+  let snapshot2 = { docs: [] as any[] };
+  if (profileId) {
+    snapshot2 = await getDocs(
       collection(firestore, 'users', profileId, 'medications')
     );
   }
 
-  // 3. Fallback to user root medications
-  if (snapshot.empty && userId) {
-    snapshot = await getDocs(
+  // 3. Fetch from user root medications (Legacy path)
+  let snapshot3 = { docs: [] as any[] };
+  if (userId) {
+    snapshot3 = await getDocs(
       collection(firestore, 'users', userId, 'medications')
     );
   }
 
-  const rawMeds = snapshot.docs.map((docSnap) => {
+  // Combine all documents from all possible paths
+  const allDocs = [...snapshot1.docs, ...snapshot2.docs, ...snapshot3.docs];
+
+  const rawMeds = allDocs.map((docSnap) => {
     const data = docSnap.data();
     return {
       id: docSnap.id,

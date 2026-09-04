@@ -132,6 +132,13 @@ export function LiveAgentDashboard() {
       const { token } = await response.json();
       
       const agoraService = getAgoraService();
+      
+      // Auto-resolve when patient hangs up
+      agoraService.on('userLeft', async () => {
+        console.log('Patient left the call. Auto-resolving ticket.');
+        await handleResolveTicket(ticketId);
+      });
+
       await agoraService.connect({
         appId: process.env.NEXT_PUBLIC_AGORA_APP_ID || '',
         channel: ticketId,
@@ -215,6 +222,22 @@ export function LiveAgentDashboard() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
             Online & Ready
           </Badge>
+        </div>
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex flex-col">
+          <span className="text-sm font-medium text-blue-600">Total Escalations</span>
+          <span className="text-3xl font-bold text-blue-900">{tickets.length}</span>
+        </div>
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex flex-col">
+          <span className="text-sm font-medium text-emerald-600">Resolved Today</span>
+          <span className="text-3xl font-bold text-emerald-900">{tickets.filter(t => t.status === 'resolved').length}</span>
+        </div>
+        <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex flex-col">
+          <span className="text-sm font-medium text-red-600">Waiting Patients</span>
+          <span className="text-3xl font-bold text-red-900">{openTicketsCount}</span>
         </div>
       </div>
 

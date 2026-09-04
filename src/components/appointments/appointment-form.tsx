@@ -30,6 +30,20 @@ interface AppointmentFormProps {
   onCancel?: () => void;
 }
 
+const MOCK_DOCTORS: Record<string, string[]> = {
+  'Cardiologist': ['Dr. Sarah Chen', 'Dr. Michael Roberts'],
+  'Endocrinologist': ['Dr. James Wilson', 'Dr. Emily Wong'],
+  'General Practitioner': ['Dr. Robert Smith', 'Dr. Lisa Johnson'],
+  'Pediatrician': ['Dr. Amanda Garcia', 'Dr. David Lee'],
+  'Neurologist': ['Dr. Richard Davis', 'Dr. Susan Martinez'],
+  'Dermatologist': ['Dr. Jennifer Taylor', 'Dr. Kevin Brown'],
+  'Psychiatrist': ['Dr. William Anderson', 'Dr. Patricia Thomas'],
+};
+
+const getDoctorsForSpecialization = (spec: string) => {
+  return MOCK_DOCTORS[spec] || ['Dr. Auto Assigned'];
+};
+
 export function AppointmentForm({
   userId,
   profileId,
@@ -41,9 +55,12 @@ export function AppointmentForm({
 }: AppointmentFormProps) {
   const { addAppointment } = useAppointments(userId, profileId);
 
+  const initialSpec = symptomAnalysis.recommendedSpecializations[0] || '';
+  const initialDoctors = getDoctorsForSpecialization(initialSpec);
+
   const [formData, setFormData] = useState({
-    doctorName: '',
-    specialization: symptomAnalysis.recommendedSpecializations[0] || '',
+    doctorName: initialDoctors[0] || '',
+    specialization: initialSpec,
     date: '',
     time: '',
     duration: '30',
@@ -110,7 +127,15 @@ export function AppointmentForm({
   };
 
   const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updates = { ...prev, [field]: value };
+      if (field === 'specialization') {
+        // Auto-update doctor name when specialization changes
+        const doctors = getDoctorsForSpecialization(value);
+        updates.doctorName = doctors[0] || 'Dr. Auto Assigned';
+      }
+      return updates;
+    });
   };
 
   return (
@@ -152,14 +177,22 @@ export function AppointmentForm({
               <User className="h-4 w-4" />
               Doctor Name
             </Label>
-            <Input
-              id="doctorName"
-              placeholder="Dr. Smith"
+            <Select
               value={formData.doctorName}
-              onChange={(e) => handleChange('doctorName', e.target.value)}
+              onValueChange={(value) => handleChange('doctorName', value)}
               disabled={isSubmitting}
-              required
-            />
+            >
+              <SelectTrigger id="doctorName">
+                <SelectValue placeholder="Select Doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                {getDoctorsForSpecialization(formData.specialization).map((doc) => (
+                  <SelectItem key={doc} value={doc}>
+                    {doc}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Specialization */}

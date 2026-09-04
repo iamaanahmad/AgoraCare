@@ -266,8 +266,17 @@ export class EmergencyCallService {
     // Remote user published audio
     this.client.on('user-published', async (user: IAgoraRTCRemoteUser, mediaType: 'audio' | 'video') => {
       if (mediaType === 'audio') {
-        await this.client!.subscribe(user, mediaType);
-        console.log('Subscribed to remote audio');
+        try {
+          const remoteTrack = await this.client!.subscribe(user, mediaType);
+          console.log('Subscribed to remote audio successfully:', user.uid);
+          if (remoteTrack) {
+            remoteTrack.play();
+          } else if (user.audioTrack) {
+            user.audioTrack.play();
+          }
+        } catch (subErr) {
+          console.error('Error subscribing to remote audio track:', subErr);
+        }
       }
     });
 
