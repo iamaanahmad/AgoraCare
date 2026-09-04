@@ -1,5 +1,7 @@
 # 🏥 AgoraCare - Voice AI Medical Triage & Remote Patient Care
 
+![AgoraCare Banner](./public/agoracare.jpg)
+
 > **Real-time, Multilingual Voice AI with Instant Human Escalation via Agora RTC**
 
 AgoraCare is a real-time, multilingual Voice AI telehealth platform designed for remote patient care, medication adherence, and emergency triage. It acts as a frontline conversational healthcare assistant that can support patients in English and Hindi, monitor vitals, manage prescriptions, and intelligently escalate urgent emergencies to human nurses over crystal-clear real-time audio.
@@ -10,6 +12,9 @@ AgoraCare is a real-time, multilingual Voice AI telehealth platform designed for
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
+
+### 🎥 Watch the Demo
+[![AgoraCare Demo Video](https://img.youtube.com/vi/CiClYKt96TE/0.jpg)](https://www.youtube.com/watch?v=CiClYKt96TE)
 
 ---
 
