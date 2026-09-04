@@ -25,7 +25,7 @@ AgoraCare provides an intelligent, human-in-the-loop care coordination system de
 ## ✨ Features
 
 ### 1. 🎙️ Agora Conversational AI Engine Agent
-- Built on the **Agora Conversational AI Engine** ([`src/lib/agora/convo-ai-service.ts`](file:///c:/Projects/AgoraCare/src/lib/agora/convo-ai-service.ts) & [`AGORA_CONVERSATIONAL_AI.md`](file:///c:/Projects/AgoraCare/AGORA_CONVERSATIONAL_AI.md)).
+- Built on the **Agora Conversational AI Engine** ([`src/lib/agora/convo-ai-service.ts`](./src/lib/agora/convo-ai-service.ts) & [`AGORA_CONVERSATIONAL_AI.md`](./AGORA_CONVERSATIONAL_AI.md)).
 - Server-side AI Agent (**Aria**) provisioned directly into the RTC channel with VAD, ASR, LLM reasoning, and natural voice synthesis.
 - Intelligent tool-calling webhooks (`/api/agora/agent/tool`) trigger instant human nurse escalation.
 
