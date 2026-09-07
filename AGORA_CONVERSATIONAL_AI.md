@@ -1,14 +1,15 @@
 # 🎙️ Agora Conversational AI Engine Integration Guide
 
 > **Project:** AgoraCare — AI-Powered Remote Healthcare & Real-Time Emergency Voice Escalation  
-> **Engine:** Agora Conversational AI Engine (Server-Side AI Agent Orchestration, VAD, ASR, LLM, TTS & Webhooks)  
+> **Engine:** Agora Conversational AI Engine with **Official Agora Agents SDK**  
+> **SDK:** `agora-agents` npm package with `.withStt()`, `.withLlm()`, `.withTts()` builder pattern  
 > **Track:** EchoSphere: Agora Conversational AI Hackathon  
 
 ---
 
 ## 🏗️ Architecture & How It Works
 
-AgoraCare implements a full **Agora Conversational AI Agent architecture**. When a patient initiates a voice session, a server-side AI Agent (**Aria**) is provisioned into the Agora RTC channel, orchestrating real-time audio input, speech recognition, LLM reasoning, voice synthesis, and clinical tool execution:
+AgoraCare implements the **official Agora Agents SDK** (`agora-agents` npm package) with the typed builder pattern. When a patient initiates a voice session, a server-side AI Agent (**Aria**) is provisioned using `.withStt()`, `.withLlm()`, `.withTts()` methods into the Agora RTC channel, orchestrating real-time audio input, speech recognition, LLM reasoning, voice synthesis, and clinical tool execution:
 
 ```mermaid
 flowchart TD
@@ -61,12 +62,79 @@ flowchart TD
 
 | Component | File Path | Description |
 | :--- | :--- | :--- |
-| **Server AI Orchestrator** | [`src/lib/agora/convo-ai-service.ts`](file:///c:/Projects/AgoraCare/src/lib/agora/convo-ai-service.ts) | Core service managing Agora Conversational AI agent credentials, RTC token generation, LLM system prompts, VAD, and REST API dispatch. |
-| **Agent Start Endpoint** | [`src/app/api/agora/agent/start/route.ts`](file:///c:/Projects/AgoraCare/src/app/api/agora/agent/start/route.ts) | Starts the Conversational AI Agent for a channel. |
-| **Agent Stop Endpoint** | [`src/app/api/agora/agent/stop/route.ts`](file:///c:/Projects/AgoraCare/src/app/api/agora/agent/stop/route.ts) | Terminates the Conversational AI Agent session cleanly. |
+| **Agora Agents SDK Service** | [`src/lib/agora/convo-ai-service.ts`](file:///c:/Projects/AgoraCare/src/lib/agora/convo-ai-service.ts) | Core service using official `agora-agents` SDK with `.withStt()`, `.withLlm()`, `.withTts()` builder pattern. Manages AgoraClient, Agent configuration, session lifecycle, and token generation. |
+| **Agent Start Endpoint** | [`src/app/api/agora/agent/start/route.ts`](file:///c:/Projects/AgoraCare/src/app/api/agora/agent/start/route.ts) | Starts the Conversational AI Agent using the SDK's `agent.createSession()` and `session.start()` methods. |
+| **Agent Stop Endpoint** | [`src/app/api/agora/agent/stop/route.ts`](file:///c:/Projects/AgoraCare/src/app/api/agora/agent/stop/route.ts) | Terminates the agent using `session.stop()` from the SDK. |
 | **Agent Tool Calling Webhook** | [`src/app/api/agora/agent/tool/route.ts`](file:///c:/Projects/AgoraCare/src/app/api/agora/agent/tool/route.ts) | Handles tool execution callbacks (`escalateToHumanNurse`, `getMedicationSchedule`). |
 | **Client Voice Coordinator** | [`src/contexts/voice-context.tsx`](file:///c:/Projects/AgoraCare/src/contexts/voice-context.tsx) | Synchronizes client RTC connection with the backend Conversational AI Agent session. |
 | **Dynamic RTC Token Issuer** | [`src/app/api/agora/token/route.ts`](file:///c:/Projects/AgoraCare/src/app/api/agora/token/route.ts) | Issues dynamic cryptographic Agora RTC tokens for both user and agent UIDs. |
+
+---
+
+## 🔧 Agora Agents SDK Implementation
+
+### Installation
+
+```bash
+npm install agora-agents
+```
+
+### Core SDK Components Used
+
+```typescript
+import {
+  AgoraClient,   // Client for API authentication
+  Agent,         // Agent builder with .withStt(), .withLlm(), .withTts()
+  Area,          // Regional routing (Area.US, Area.EU, Area.AP, Area.CN)
+  ExpiresIn,     // Token expiry helpers
+  Gemini,        // Google Gemini LLM
+  MicrosoftTTS,  // Azure TTS
+} from 'agora-agents';
+```
+
+### Agent Configuration Pattern
+
+```typescript
+// 1. Create AgoraClient
+const client = new AgoraClient({
+  area: Area.US,
+  appId: process.env.NEXT_PUBLIC_AGORA_APP_ID!,
+  appCertificate: process.env.AGORA_APP_CERTIFICATE!,
+});
+
+// 2. Build Agent with typed builder pattern
+const agent = new Agent({
+  client,
+  instructions: systemPrompt,
+  greeting: greetingMessage,
+  maxHistory: 50,
+})
+  .withLlm(new Gemini({
+    apiKey: process.env.GOOGLE_GENAI_API_KEY!,
+    model: 'gemini-2.0-flash-exp',
+    temperature: 0.7,
+    topP: 0.95,
+    maxOutputTokens: 1024,
+  }))
+  .withTts(new MicrosoftTTS({
+    key: process.env.AZURE_SPEECH_KEY!,
+    region: 'eastus',
+    voiceName: 'hi-IN-SwaraNeural',
+    speed: 1.0,
+    volume: 70,
+  }));
+
+// 3. Create and start session
+const session = agent.createSession({
+  channel: channelName,
+  agentUid: '9999',
+  remoteUids: ['*'],
+  expiresIn: ExpiresIn.hours(2),
+  idleTimeout: 300,
+});
+
+const agentId = await session.start();
+```
 
 ---
 
@@ -135,6 +203,26 @@ flowchart TD
 
 ## 🛡️ Key Features of the Agora Conversational AI Integration
 
-1. **Bilingual Conversational Flow (`hi-IN` & `en-IN`):** The agent natively speaks and understands Hindi and English with natural turn-taking.
-2. **Real-Time VAD & Interruption Handling:** Allows callers to interrupt the AI naturally.
-3. **Automated Human Nurse Escalation:** Tool calls bridge the live human nurse into the same Agora RTC room while triggering the nurse dashboard's Web Audio harmonic emergency chime.
+1. **Official Agora Agents SDK**: Uses the typed `agora-agents` npm package with `.withStt()`, `.withLlm()`, `.withTts()` builder pattern
+2. **Bilingual Conversational Flow (`hi-IN` & `en-IN`):** The agent natively speaks and understands Hindi and English with natural turn-taking.
+3. **Real-Time VAD & Interruption Handling:** Allows callers to interrupt the AI naturally.
+4. **Automated Human Nurse Escalation:** Tool calls bridge the live human nurse into the same Agora RTC room while triggering the nurse dashboard's Web Audio harmonic emergency chime.
+5. **Gemini LLM Integration:** Powered by Google's Gemini 2.0 Flash for fast, context-aware medical responses.
+6. **Azure TTS Integration:** Uses Microsoft Azure Neural Voices for natural-sounding Hindi and English speech.
+
+---
+
+## 🔑 Required Environment Variables
+
+```bash
+# Agora Configuration (MANDATORY)
+NEXT_PUBLIC_AGORA_APP_ID=your_agora_app_id
+AGORA_APP_CERTIFICATE=your_agora_certificate
+
+# Google Gemini LLM
+GOOGLE_GENAI_API_KEY=your_google_api_key
+
+# Azure Speech Service (TTS)
+AZURE_SPEECH_KEY=your_azure_speech_key
+AZURE_SPEECH_REGION=eastus
+```
