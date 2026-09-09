@@ -3,7 +3,7 @@
 > **Project:** AgoraCare — AI-Powered Remote Healthcare & Real-Time Emergency Voice Escalation  
 > **Engine:** Agora Conversational AI Engine with **Official Agora Agents SDK**  
 > **SDK:** `agora-agents` npm package with `.withStt()`, `.withLlm()`, `.withTts()` builder pattern  
-> **Track:** EchoSphere: Agora Conversational AI Hackathon  
+> **Domain:** Real-Time Conversational AI & Telehealth Escalation  
 
 ---
 

@@ -8,8 +8,23 @@ import { ChatInterface } from '@/components/voice/chat-interface';
 import { useVoice } from '@/contexts/voice-context';
 
 export function FloatingVoiceAssistant() {
-  const { voiceState, disconnect, toggleMute } = useVoice();
+  const { voiceState, disconnect, toggleMute, connect } = useVoice();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Auto-connect to agent when sheet opens
+  React.useEffect(() => {
+    if (isOpen && !voiceState.isConnected) {
+      // Generate a unique channel for this voice session
+      const channel = `voice_session_${Date.now()}`;
+      console.log('[FloatingVoiceAssistant] Opening - connecting to voice agent');
+      connect(channel).catch(err => {
+        console.error('Failed to auto-connect to voice agent:', err);
+      });
+    }
+    
+    // DON'T auto-disconnect when closing - let user manually hang up
+    // This prevents the agent from being stopped too early
+  }, [isOpen, voiceState.isConnected, connect]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>

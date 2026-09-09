@@ -106,7 +106,7 @@ To view the Live Agent Dashboard, navigate to [http://localhost:9002/agent](http
 
 <div align="center">
 
-**Built for the EchoSphere Hackathon**
+**AgoraCare — Voice AI Medical Triage & Remote Patient Care**
 
 **Powered by Agora Conversational AI SDK**
 

@@ -1,12 +1,14 @@
 /**
  * Voice Context Provider
  * Manages Agora voice connection state and provides voice interface functionality
+ * NOW PROPERLY INTEGRATED WITH AGORA CONVERSATIONAL AI AGENT
  */
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { getAgoraService } from '@/lib/agora';
+import RTM from 'agora-rtm-sdk';
 import type { 
   VoiceState, 
   ConnectionState, 
@@ -51,13 +53,13 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
   });
 
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
-  const isSendingRef = React.useRef(false);
-  const lastSentRef = React.useRef<{ text: string; time: number }>({ text: '', time: 0 });
-  const activeAgentIdRef = React.useRef<string | null>(null);
+  const activeAgentIdRef = useRef<string | null>(null);
+  const rtmClientRef = useRef<any>(null);
   const agoraService = getAgoraService();
+  const AGENT_UID = 9999; // The agent always uses UID 9999
 
   /**
-   * Connect to Agora voice channel and spin up Agora Conversational AI Agent
+   * Connect to Agora voice channel
    */
   const connect = useCallback(async (channel: string, uid?: string | number) => {
     try {
@@ -72,54 +74,71 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
         return;
       }
 
-      // Generate a dynamic numeric UID for the channel (standard Agora RTC UID)
+      // Generate a dynamic numeric UID for the user
       const userUid = uid ? (typeof uid === 'number' ? uid : parseInt(uid, 10) || uid) : (Math.floor(Math.random() * 800000) + 200000);
 
-      // Fetch RTC token from our serverless endpoint
-      let token: string | undefined = undefined;
-      let finalUid = userUid;
-      try {
-        const tokenRes = await fetch(`/api/agora/token?channelName=${encodeURIComponent(channel)}&uid=${encodeURIComponent(userUid)}`);
-        if (tokenRes.ok) {
-          const tokenData = await tokenRes.json();
-          token = tokenData.token;
-          if (tokenData.uid !== undefined) {
-            finalUid = tokenData.uid;
-          }
-        }
-      } catch (tokenErr) {
-        console.warn('Could not fetch dynamic token, attempting fallback:', tokenErr);
-      }
-
-      const config: VoiceConfig = {
-        appId,
-        channel,
-        token: token || undefined,
-        uid: finalUid,
-      };
-
-      await agoraService.connect(config);
-      setVoiceState(prev => ({ ...prev, isConnected: true, channel, error: null }));
-
-      // Initialize Agora Conversational AI Engine Agent for the channel
+      console.log('[Voice] Starting agent FIRST - it will manage RTC connection...');
+      
+      // 1. Start the Agora Conversational AI Agent FIRST
+      // The agent SDK creates and manages its own RTC connection
       try {
         const agentRes = await fetch('/api/agora/agent/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             channelName: channel,
-            userUid: finalUid,
+            userUid: userUid,
             language: voiceLanguage,
           }),
         });
-        if (agentRes.ok) {
-          const agentData = await agentRes.json();
-          activeAgentIdRef.current = agentData.session?.agentId || null;
-          console.log('[Agora Conversational AI] Agent session initialized:', agentData.session);
+        
+        if (!agentRes.ok) {
+          throw new Error('Agent start failed');
         }
+        
+        const agentData = await agentRes.json();
+        activeAgentIdRef.current = agentData.session?.agentId || null;
+        console.log('[Agora Conversational AI] Agent started:', agentData.session?.agentId);
+        console.log('[Voice] Agent is running, now connecting user to same channel...');
       } catch (agentErr) {
-        console.warn('[Agora Conversational AI] Agent initialization notice:', agentErr);
+        console.error('[Agora Conversational AI] Failed to start agent:', agentErr);
+        throw new Error('Failed to start voice agent');
       }
+
+      // 2. Now connect user's RTC client to the same channel
+      // Fetch RTC token
+      let rtcToken: string | undefined = undefined;
+      let finalUid = userUid;
+      
+      try {
+        const tokenRes = await fetch(`/api/agora/token?channelName=${encodeURIComponent(channel)}&uid=${encodeURIComponent(userUid)}`);
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          rtcToken = tokenData.token;
+          if (tokenData.uid !== undefined) {
+            finalUid = tokenData.uid;
+          }
+        }
+      } catch (tokenErr) {
+        console.warn('Could not fetch dynamic token:', tokenErr);
+      }
+
+      const config: VoiceConfig = {
+        appId,
+        channel,
+        token: rtcToken || undefined,
+        uid: finalUid,
+      };
+
+      await agoraService.connect(config);
+      console.log('[Voice] User joined channel, microphone should be active');
+
+      setVoiceState(prev => ({ ...prev, isConnected: true, channel, error: null }));
+      console.log('[Voice] ✅ Setup complete - agent will speak greeting shortly');
+      console.log('[Voice] 🎤 After hearing greeting, speak your question and wait for response');
+
+      // 3. RTM transcripts disabled for now
+      console.log('[Voice] RTM transcripts disabled - focusing on voice conversation');
     } catch (error) {
       console.error('Failed to connect to Agora voice channel:', error);
       setVoiceState(prev => ({
@@ -139,6 +158,18 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       const channelToClose = voiceState.channel;
       const agentToStop = activeAgentIdRef.current;
 
+      // Disconnect RTM
+      if (rtmClientRef.current) {
+        try {
+          await rtmClientRef.current.logout();
+          rtmClientRef.current = null;
+          console.log('[Agora RTM] Disconnected');
+        } catch (rtmErr) {
+          console.warn('[Agora RTM] Logout error:', rtmErr);
+        }
+      }
+
+      // Disconnect RTC (AgoraService handles cleanup of audio tracks)
       await agoraService.disconnect();
       setVoiceState(prev => ({ ...prev, isConnected: false, channel: undefined }));
 
@@ -154,6 +185,7 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
             }),
           });
           activeAgentIdRef.current = null;
+          console.log('[Agora Conversational AI] Agent stopped');
         } catch (stopErr) {
           console.warn('[Agora Conversational AI] Agent stop notice:', stopErr);
         }
@@ -180,90 +212,49 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
     }
   }, [agoraService]);
 
-  const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
+  /**
+   * Start recording - enables microphone for agent to hear user
+   * Note: When connected to RTC, the agent automatically hears your microphone
+   * This function just updates UI state to show recording is active
+   */
+  const startRecording = useCallback(() => {
+    if (!voiceState.isConnected) {
+      setVoiceState(prev => ({ ...prev, error: 'Please connect to voice channel first' }));
+      return;
+    }
+    setVoiceState(prev => ({ ...prev, isRecording: true }));
+    console.log('[Voice] Microphone active - agent is listening through RTC');
+  }, [voiceState.isConnected]);
 
   /**
-   * Speak text out loud using browser speech synthesis with female Indian / Hindi accent matching
+   * Stop recording - mutes microphone
+   * Note: This just updates UI state. Audio still flows through RTC unless muted
    */
-  const speakText = useCallback((text: string) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95;
-      utterance.pitch = 1.1; // Gentle female pitch
-
-      const voices = window.speechSynthesis.getVoices();
-      
-      // Explicitly reject known male voices
-      const isFemale = (v: SpeechSynthesisVoice) => {
-        const name = v.name.toLowerCase();
-        return !name.includes('male') && !name.includes('hemant') && !name.includes('madhur');
-      };
-
-      // Prioritize natural female Indian voices
-      const matchedVoice = voices.find(v => 
-        (v.lang === 'hi-IN' || v.lang.startsWith('hi')) &&
-        (v.name.toLowerCase().includes('swara') || v.name.toLowerCase().includes('kalpana') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural')) && isFemale(v)
-      ) || voices.find(v =>
-        (v.lang === 'hi-IN' || v.lang.startsWith('hi') || v.name.toLowerCase().includes('hindi')) && isFemale(v)
-      ) || voices.find(v =>
-        (v.lang === 'en-IN' || v.name.toLowerCase().includes('india')) &&
-        (v.name.toLowerCase().includes('neerja') || v.name.toLowerCase().includes('heera') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural')) && isFemale(v)
-      ) || voices.find(v => 
-        (v.lang === 'en-IN' || v.name.toLowerCase().includes('india')) && isFemale(v)
-      ) || voices.find(v => 
-        (v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('female')) && isFemale(v)
-      ) || voices.find(isFemale);
-
-      if (matchedVoice) {
-        utterance.voice = matchedVoice;
-        utterance.lang = matchedVoice.lang;
-      } else {
-        utterance.lang = 'hi-IN';
-      }
-
-      setVoiceState(prev => ({ ...prev, isSpeaking: true }));
-      utterance.onend = () => {
-        setVoiceState(prev => ({ ...prev, isSpeaking: false }));
-      };
-      utterance.onerror = () => {
-        setVoiceState(prev => ({ ...prev, isSpeaking: false }));
-      };
-      window.speechSynthesis.speak(utterance);
-    }
+  const stopRecording = useCallback(() => {
+    setVoiceState(prev => ({ ...prev, isRecording: false }));
+    console.log('[Voice] Recording UI stopped (audio still flows through RTC)');
   }, []);
 
   /**
-   * Normalize common speech-to-text mistranscriptions for medication names
-   */
-  const normalizeSpeechText = (rawText: string) => {
-    let text = rawText;
-    text = text.replace(/lenovo\s*screen|lenovo\s*pill|lenovo|licenopril|lessenopril|listen\s*o\s*pril|lysinopril/gi, 'Lisinopril');
-    text = text.replace(/meat\s*for\s*me|met\s*for\s*me|meatformin|met\s*form|made\s*for\s*me|mac\s*for\s*me|matformin/gi, 'Metformin');
-    text = text.replace(/am\s*lo\s*dip\s*in|amlodipin|amlo\s*dip|am\s*load\s*a\s*pin|amlo\s*the\s*pin|amlo\s*d\s*pin/gi, 'Amlodipine');
-    text = text.replace(/same\s*waste|sim\s*vast\s*a\s*tin|simvast|sim\s*vast\s*setting|seam\s*waste|simba\s*statin/gi, 'Simvastatin');
-    return text;
-  };
-
-  /**
-   * Send a text message (runs real Genkit AI Triage & speaks response)
+   * Send a text message (for emergency escalation or text-based chat)
+   * Note: When connected to voice agent, speak directly - don't use text chat
    */
   const sendMessage = useCallback(async (content: string) => {
-    const cleanContent = normalizeSpeechText(content.trim());
+    const cleanContent = content.trim();
     if (!cleanContent) return;
 
-    // Deduplicate / debounce identical messages within 1.5 seconds or during active sending
-    const now = Date.now();
-    if (
-      isSendingRef.current ||
-      (lastSentRef.current.text === cleanContent && now - lastSentRef.current.time < 1500)
-    ) {
-      console.log('Debounced duplicate message send attempt:', cleanContent);
+    // If connected to voice agent, show warning - user should speak, not type
+    if (voiceState.isConnected) {
+      console.warn('[Voice] Already connected to agent - speak instead of typing');
+      const warningMessage: ConversationMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '💬 You are connected to the voice agent. Just speak normally - the agent can hear you through your microphone!',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, warningMessage]);
       return;
     }
-
-    isSendingRef.current = true;
-    lastSentRef.current = { text: cleanContent, time: now };
 
     const userMessage: ConversationMessage = {
       id: Date.now().toString(),
@@ -295,15 +286,11 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
       setMessages(prev => [...prev, assistantMessage]);
       setVoiceState(prev => ({ ...prev, isProcessing: false }));
 
-      // Speak response out loud
-      speakText(replyText);
-
       // If AI detects emergency, automatically bridge patient into the Agora live voice room
       if (data.escalateToHuman && data.ticketId) {
         const ticketChannel = data.ticketId;
         console.log('Call escalated to live human agent. Auto-connecting to Agora channel:', ticketChannel);
         
-        // Add status message informing user they are connected to the live room
         setTimeout(() => {
           setMessages(prev => [
             ...prev,
@@ -320,7 +307,6 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
           await connect(ticketChannel);
         } catch (connErr: any) {
           console.warn('Auto-connect to Agora voice channel notice:', connErr);
-          // Show alert to help debug why patient chat isn't connecting
           if (typeof window !== 'undefined') {
             alert('Failed to connect to Live Voice Call: ' + (connErr.message || connErr));
           }
@@ -338,104 +324,19 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
           timestamp: new Date(),
         },
       ]);
-      speakText(fallbackReply);
       setVoiceState(prev => ({ 
         ...prev, 
         isProcessing: false,
         error: 'Failed to process with cloud AI' 
       }));
-    } finally {
-      isSendingRef.current = false;
     }
-  }, [speakText, connect]);
-
-  /**
-   * Start recording voice input with browser speech recognition
-   */
-  const startRecording = useCallback(() => {
-    setVoiceState(prev => ({ ...prev, isRecording: true, currentMessage: '' }));
-    
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        try {
-          const reco = new SpeechRecognition();
-          reco.lang = voiceLanguage;
-          reco.continuous = false;
-          reco.interimResults = true;
-
-          let capturedText = '';
-          let hasDispatched = false;
-
-          const dispatchSpeech = () => {
-            if (hasDispatched) return;
-            const textToSend = capturedText.trim();
-            if (textToSend) {
-              hasDispatched = true;
-              sendMessage(textToSend);
-            }
-          };
-
-          reco.onresult = (event: any) => {
-            let interim = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-              if (event.results[i].isFinal) {
-                capturedText += ' ' + event.results[i][0].transcript;
-              } else {
-                interim += event.results[i][0].transcript;
-              }
-            }
-            const current = (capturedText + ' ' + interim).trim();
-            if (current) {
-              setVoiceState(prev => ({ ...prev, currentMessage: current }));
-            }
-          };
-
-          reco.onerror = (event: any) => {
-            console.warn('Speech recognition notice:', event.error);
-            setVoiceState(prev => ({ ...prev, isRecording: false }));
-          };
-
-          reco.onend = () => {
-            dispatchSpeech();
-            setVoiceState(prev => ({ ...prev, isRecording: false, currentMessage: '' }));
-          };
-
-          reco.start();
-          setRecognitionInstance(reco);
-        } catch (e) {
-          console.warn('Speech recognition start failed:', e);
-          setVoiceState(prev => ({ ...prev, isRecording: false }));
-        }
-      } else {
-        alert('Voice speech recognition is not supported in this browser. You can type in Hindi or English directly.');
-        setVoiceState(prev => ({ ...prev, isRecording: false }));
-      }
-    }
-  }, [sendMessage, voiceLanguage]);
-
-  /**
-   * Stop recording voice input
-   */
-  const stopRecording = useCallback(() => {
-    if (recognitionInstance) {
-      try {
-        recognitionInstance.stop();
-      } catch (e) {
-        // ignore
-      }
-    }
-    setVoiceState(prev => ({ ...prev, isRecording: false }));
-  }, [recognitionInstance]);
+  }, [connect, voiceState.isConnected]);
 
   /**
    * Clear conversation messages
    */
   const clearMessages = useCallback(() => {
     setMessages([]);
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
   }, []);
 
   /**
@@ -461,17 +362,20 @@ export function VoiceProvider({ children }: VoiceProviderProps) {
   }, []);
 
   // Keep a stable ref to disconnect so cleanup only runs on actual unmount
-  const disconnectRef = React.useRef(disconnect);
+  const disconnectRef = useRef(disconnect);
   useEffect(() => {
     disconnectRef.current = disconnect;
   }, [disconnect]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - DISABLED to prevent premature agent termination
+  // User must manually click "End Call" to disconnect
+  /*
   useEffect(() => {
     return () => {
       disconnectRef.current();
     };
   }, []);
+  */
 
   const value: VoiceContextType = {
     voiceState,

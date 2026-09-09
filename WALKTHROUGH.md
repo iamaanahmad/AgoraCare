@@ -1,8 +1,7 @@
-# 🏥 AgoraCare — Prototype Walkthrough & Mentor Review Guide
+# 🏥 AgoraCare — Platform Walkthrough & Technical Guide
 
-> **Prepared for:** Kamal Walia (Mentor)  
 > **Project Name:** AgoraCare — AI-Powered Remote Patient Care & Real-Time Voice Emergency Escalation  
-> **Track:** EchoSphere / Agora Conversational AI Hackathon  
+> **Domain:** Real-Time Conversational AI & Telehealth Escalation  
 > **Live Patient App:** [https://agoracare.vercel.app](https://agoracare.vercel.app)  
 > **Live Nurse / Agent Dashboard:** [https://agoracare.vercel.app/agent](https://agoracare.vercel.app/agent)  
 > **GitHub Repository:** [https://github.com/iamaanahmad/AgoraCare](https://github.com/iamaanahmad/AgoraCare)

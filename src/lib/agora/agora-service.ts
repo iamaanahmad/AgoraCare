@@ -52,8 +52,9 @@ export class AgoraService {
       }
 
       if (this.client && (this.client.connectionState === 'CONNECTED' || this.client.connectionState === 'CONNECTING')) {
-        console.log('Agora client already connected or connecting, skipping duplicate join.');
-        return;
+        console.log('[AgoraService] Already connected/connecting, disconnecting first...');
+        await this.disconnect();
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       this.isManualDisconnect = false;
@@ -64,12 +65,19 @@ export class AgoraService {
       this.setupEventListeners();
 
       // Join the channel
+      console.log('[AgoraService] Joining channel:', config.channel);
+      console.log('[AgoraService] App ID:', config.appId);
+      console.log('[AgoraService] UID:', config.uid);
+      console.log('[AgoraService] Token:', config.token ? 'provided' : 'none');
+      
       await this.client!.join(
         config.appId,
         config.channel,
         config.token || null,
         config.uid
       );
+      
+      console.log('[AgoraService] Successfully joined channel');
 
       // Create and publish local audio track
       this.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
@@ -79,12 +87,15 @@ export class AgoraService {
         AGC: true, // Automatic Gain Control
       });
 
+      console.log('[AgoraService] Microphone track created, publishing...');
       await this.client!.publish([this.localAudioTrack]);
+      console.log('[AgoraService] ✅ Microphone published - agent should hear you now');
 
       this.setConnectionState('connected');
       this.reconnectAttempts = 0;
 
-      console.log('Successfully connected to Agora channel:', config.channel);
+      console.log('[AgoraService] Successfully connected to Agora channel:', config.channel);
+      console.log('[AgoraService] Your UID:', config.uid, '| Agent UID: 9999');
     } catch (error) {
       this.setConnectionState('failed');
       this.handleError(error as Error);
@@ -192,7 +203,7 @@ export class AgoraService {
 
     // User joined
     this.client.on('user-joined', (user: IAgoraRTCRemoteUser) => {
-      console.log('User joined:', user.uid);
+      console.log('[AgoraService] User joined channel:', user.uid);
       if (this.onUserJoined) {
         this.onUserJoined(user);
       }
@@ -200,7 +211,7 @@ export class AgoraService {
 
     // User left
     this.client.on('user-left', (user: IAgoraRTCRemoteUser) => {
-      console.log('User left:', user.uid);
+      console.log('[AgoraService] User left channel:', user.uid);
       if (this.onUserLeft) {
         this.onUserLeft(user);
       }
@@ -208,18 +219,24 @@ export class AgoraService {
 
     // User published audio
     this.client.on('user-published', async (user: IAgoraRTCRemoteUser, mediaType: 'audio' | 'video') => {
-      console.log('Agora user published event:', user.uid, mediaType);
+      console.log('[AgoraService] User published:', user.uid, 'mediaType:', mediaType);
       if (mediaType === 'audio') {
         try {
+          console.log('[AgoraService] Subscribing to user audio:', user.uid);
           const remoteTrack = await this.client!.subscribe(user, mediaType);
-          console.log('Subscribed to user audio successfully:', user.uid);
+          console.log('[AgoraService] Successfully subscribed to:', user.uid);
+          
           if (remoteTrack) {
             remoteTrack.play();
+            console.log('[AgoraService] Playing audio from remoteTrack:', user.uid);
           } else if (user.audioTrack) {
             user.audioTrack.play();
+            console.log('[AgoraService] Playing audio from user.audioTrack:', user.uid);
+          } else {
+            console.warn('[AgoraService] No audio track available for:', user.uid);
           }
         } catch (subErr) {
-          console.error('Error subscribing to remote audio track:', subErr);
+          console.error('[AgoraService] Error subscribing to remote audio track:', subErr);
         }
       }
     });
@@ -248,6 +265,12 @@ export class AgoraService {
    * Attempt to reconnect to the channel
    */
   private async attemptReconnect(): Promise<void> {
+    // Disable auto-reconnect for now to prevent loops
+    console.log('[AgoraService] Auto-reconnect disabled to prevent connection loops');
+    this.setConnectionState('failed');
+    return;
+    
+    /* Original code - disabled
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.setConnectionState('failed');
       this.handleError(new Error('Max reconnection attempts reached'));
@@ -268,6 +291,7 @@ export class AgoraService {
         console.error('Reconnection failed:', error);
       }
     }, this.reconnectDelay * this.reconnectAttempts);
+    */
   }
 
   /**

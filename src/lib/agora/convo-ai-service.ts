@@ -50,12 +50,12 @@ function getAgoraClient(): AgoraClient {
     }
 
     agoraClient = new AgoraClient({
-      area: Area.US, // Change to Area.EU, Area.AP, or Area.CN as needed
+      area: Area.AP,
       appId,
       appCertificate,
     });
 
-    console.log('[Agora Agents SDK] Client initialized with app credentials mode');
+    console.log('[Agora Agents SDK] Client initialized with app credentials mode (Area: AP)');
   }
 
   return agoraClient;
@@ -72,6 +72,16 @@ export async function startAgoraConversationalAgent(
   const channelName = config.channelName;
   const language = config.language || 'en-IN';
 
+  console.log('[Agora Agents SDK] Agent configuration:');
+  console.log('  - Channel:', channelName);
+  console.log('  - Agent UID:', agentUid);
+  console.log('  - Listening to: ALL users in channel ["*"]');
+  console.log('  - Language:', language);
+  console.log('  - STT: Deepgram nova-2');
+  console.log('  - LLM: Gemini 1.5 Flash');
+  console.log('  - TTS: MiniMax 2.8-turbo');
+  console.log('  - Voice:', language === 'hi-IN' ? 'Hindi_Female_Saavni' : 'English_captivating_female1');
+  
   // Build the system prompt
   const systemPrompt = `You are Aria, an empathetic female healthcare AI assistant for AgoraCare.
 You assist patient George with medication schedules and symptoms in ${language === 'hi-IN' ? 'Hindi' : 'English/Hinglish'}.
@@ -95,19 +105,17 @@ Rules:
     maxHistory: 50,
   })
     .withStt(new DeepgramSTT({
-      // Omit apiKey to use Agora-managed mode for nova-2 and nova-3
       model: 'nova-2',
       language: language === 'hi-IN' ? 'hi' : 'en',
     }))
     .withLlm(new Gemini({
       apiKey: process.env.GOOGLE_GENAI_API_KEY!,
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-1.5-flash',
       temperature: 0.7,
       topP: 0.95,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 512,
     }))
     .withTts(new MiniMaxTTS({
-      // Omit key to use Agora-managed mode for speech-2.6-turbo and speech-2.8-turbo
       model: 'speech-2.8-turbo',
       voiceId: language === 'hi-IN' ? 'Hindi_Female_Saavni' : 'English_captivating_female1',
     }));
@@ -116,18 +124,23 @@ Rules:
   const session = agent.createSession({
     channel: channelName,
     agentUid: agentUid.toString(),
-    remoteUids: ['*'], // Listen to all users
+    remoteUids: ['*'],
     name: `AgoraCare-${channelName}`,
     expiresIn: ExpiresIn.hours(2),
-    idleTimeout: 300, // 5 minutes idle timeout
+    idleTimeout: 300,
   });
 
   // Start the agent
   try {
+    console.log('[Agora Agents SDK] Starting agent session...');
     const agentId = await session.start();
-    console.log('[Agora Agents SDK] Agent started successfully:', agentId);
+    console.log('[Agora Agents SDK] ✅ Agent started successfully:', agentId);
+    console.log('[Agora Agents SDK] Agent will join channel:', channelName, 'with UID:', agentUid);
+    console.log('[Agora Agents SDK] Agent listening to: ALL users in channel (remoteUids: ["*"])');
+    console.log('[Agora Agents SDK] Agent greeting configured:', greetingMessage);
+    console.log('[Agora Agents SDK] Agent TTS voice:', language === 'hi-IN' ? 'Hindi_Female_Saavni' : 'English_captivating_female1');
+    console.log('[Agora Agents SDK] 🎤 Agent is now LISTENING for user speech...');
 
-    // Store the session for later retrieval
     activeSessions.set(channelName, session);
 
     return {
@@ -137,10 +150,10 @@ Rules:
       status: 'running',
       startedAt: new Date().toISOString(),
       engine: 'agora-conversational-ai-v2',
-      session, // Store session for later use
+      session,
     };
   } catch (error) {
-    console.error('[Agora Agents SDK] Failed to start agent:', error);
+    console.error('[Agora Agents SDK] ❌ Failed to start agent:', error);
     throw error;
   }
 }
@@ -154,16 +167,13 @@ export async function stopAgoraConversationalAgent(
   session?: any
 ): Promise<{ success: boolean }> {
   try {
-    // Try to get the session from our tracking map first
     const storedSession = activeSessions.get(channelName);
     const sessionToStop = session || storedSession;
 
     if (sessionToStop && typeof sessionToStop.stop === 'function') {
-      // Use the session's stop method if available
       await sessionToStop.stop();
       console.log('[Agora Agents SDK] Agent stopped via session.stop()');
     } else if (agentId) {
-      // Fallback to direct API call
       const client = getAgoraClient();
       await client.agents.stop({
         appid: process.env.NEXT_PUBLIC_AGORA_APP_ID!,
@@ -172,7 +182,6 @@ export async function stopAgoraConversationalAgent(
       console.log('[Agora Agents SDK] Agent stopped via direct API call');
     }
 
-    // Remove from tracking
     activeSessions.delete(channelName);
 
     return { success: true };
