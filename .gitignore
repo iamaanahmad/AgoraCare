@@ -12,7 +12,7 @@
 
 # testing
 /coverage
-
+/agoracare_flutter
 # next.js
 /.next/
 /out/
