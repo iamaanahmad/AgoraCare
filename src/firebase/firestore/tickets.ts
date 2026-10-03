@@ -26,6 +26,7 @@ export interface SupportTicket {
   updatedAt: Timestamp | Date;
   assignedTo?: string;
   agoraChannel?: string;
+  escalationId?: string;
 }
 
 const TICKETS_COLLECTION = 'support_tickets';

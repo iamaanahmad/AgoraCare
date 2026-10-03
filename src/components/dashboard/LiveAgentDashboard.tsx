@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useFirestore } from '@/firebase';
 import { SupportTicket, subscribeToActiveTickets, updateTicketStatus } from '@/firebase/firestore/tickets';
+import { doc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -117,35 +118,51 @@ export function LiveAgentDashboard() {
     return () => stopRingtone();
   }, [tickets, activeCallId, isAudioAlertEnabled]);
 
-  const handleAcceptCall = async (ticketId: string) => {
+  const handleAcceptCall = async (ticketId: string, agoraChannel?: string, escalationId?: string) => {
     stopRingtone();
     try {
       await updateTicketStatus(firestore, ticketId, 'in_progress', 'agent_1');
-      
+
+      // Sync the mobile `escalations` doc so the patient's phone flips from
+      // "waiting" to "connected".
+      if (escalationId) {
+        try {
+          await updateDoc(doc(firestore, 'escalations', escalationId), {
+            status: 'accepted',
+            acceptedAt: new Date(),
+          });
+        } catch (e) {
+          console.warn('Could not sync escalation status:', e);
+        }
+      }
+
+      // Join the PATIENT'S live channel (not the ticket id) so audio bridges.
+      const channel = agoraChannel && agoraChannel.length > 0 ? agoraChannel : ticketId;
+
       const agentUid = 1000;
       const response = await fetch('/api/agora/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelName: ticketId, uid: agentUid }),
+        body: JSON.stringify({ channelName: channel, uid: agentUid }),
       });
-      
+
       const { token } = await response.json();
-      
+
       const agoraService = getAgoraService();
-      
+
       // Auto-resolve when patient hangs up
       agoraService.on('userLeft', async () => {
         console.log('Patient left the call. Auto-resolving ticket.');
-        await handleResolveTicket(ticketId);
+        await handleResolveTicket(ticketId, escalationId);
       });
 
       await agoraService.connect({
         appId: process.env.NEXT_PUBLIC_AGORA_APP_ID || '',
-        channel: ticketId,
+        channel,
         uid: agentUid,
         token: token || undefined,
       });
-      
+
       setActiveCallId(ticketId);
     } catch (err) {
       console.error('Error accepting call:', err);
@@ -153,7 +170,7 @@ export function LiveAgentDashboard() {
     }
   };
 
-  const handleResolveTicket = async (ticketId: string) => {
+  const handleResolveTicket = async (ticketId: string, escalationId?: string) => {
     try {
       if (activeCallId === ticketId) {
         const agoraService = getAgoraService();
@@ -161,6 +178,17 @@ export function LiveAgentDashboard() {
         setActiveCallId(null);
       }
       await updateTicketStatus(firestore, ticketId, 'resolved');
+      // Resolve the mobile escalation doc too, so the patient's phone ends.
+      if (escalationId) {
+        try {
+          await updateDoc(doc(firestore, 'escalations', escalationId), {
+            status: 'resolved',
+            resolvedAt: new Date(),
+          });
+        } catch (e) {
+          console.warn('Could not resolve escalation doc:', e);
+        }
+      }
     } catch (err) {
       console.error('Error resolving ticket:', err);
     }
@@ -303,7 +331,7 @@ export function LiveAgentDashboard() {
                 <div className="flex flex-col space-y-2 pt-2">
                   {ticket.status === 'open' && (
                     <Button 
-                      onClick={() => handleAcceptCall(ticket.id)} 
+                      onClick={() => handleAcceptCall(ticket.id, ticket.agoraChannel, ticket.escalationId)} 
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2 shadow-sm"
                       disabled={activeCallId !== null}
                     >
@@ -320,7 +348,7 @@ export function LiveAgentDashboard() {
                           </Button>
                         </div>
                       )}
-                      <Button onClick={() => handleResolveTicket(ticket.id)} variant="outline" className="w-full border-red-600 text-red-600 hover:bg-red-50">
+                      <Button onClick={() => handleResolveTicket(ticket.id, ticket.escalationId)} variant="outline" className="w-full border-red-600 text-red-600 hover:bg-red-50">
                         End Call & Resolve
                       </Button>
                     </>
